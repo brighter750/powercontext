@@ -123,6 +123,24 @@ def test_accepts_out_of_order_scores() -> None:
     asyncio.run(scenario())
 
 
+def test_rejects_a_rank_that_belongs_to_another_batch() -> None:
+    async def scenario() -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            body = json.loads(request.content)
+            # The second batch reports the first batch's rank instead of its own.
+            rank = body["candidates"][0]["rank"]
+            reported = 1 if rank == 2 else rank
+            return httpx.Response(200, json={"scores": [{"rank": reported, "score": 0.5}]})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            reranker = HTTPMemoryReranker("https://reranker.invalid/score", client=client, batch_size=1)
+
+            with pytest.raises(ValueError):
+                await reranker.rerank("query", (_hit(1), _hit(2)), 2)
+
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize(
     "payload",
     [
