@@ -14,6 +14,10 @@
 
 """Artifact-native Memory domain and service contracts."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from powercontext.builtin.artifacts.memory.errors import (
     CapabilityNotSupportedError,
     InvalidEmbeddingError,
@@ -102,8 +106,24 @@ from powercontext.builtin.artifacts.memory.reranking import (
     MemoryRerankInput,
     MemoryRerankMode,
     MemoryRerankOutput,
+    validate_rerank_bounds,
 )
 from powercontext.builtin.artifacts.memory.service import MemoryRememberMode, MemoryService
+
+if TYPE_CHECKING:
+    from powercontext.builtin.artifacts.memory.http_reranker import HTTPMemoryReranker
+
+
+def __getattr__(name: str) -> Any:
+    # The HTTP scoring adapter needs httpx, which stays optional for the built-in
+    # install. It is resolved on first use so importing this package does not
+    # require a transport dependency.
+    if name == "HTTPMemoryReranker":
+        from powercontext.builtin.artifacts.memory.http_reranker import HTTPMemoryReranker
+
+        return HTTPMemoryReranker
+    raise AttributeError(name)
+
 
 __all__ = [
     "CONVERSATION_MEMORY_EXTRACTION_INSTRUCTIONS",
@@ -116,6 +136,7 @@ __all__ = [
     "CapabilityNotSupportedError",
     "DefaultMemoryEvidenceProjector",
     "EmbeddingProfile",
+    "HTTPMemoryReranker",
     "InvalidEmbeddingError",
     "InvalidMemoryCandidateError",
     "InvalidMemoryCitationError",
@@ -185,4 +206,5 @@ __all__ = [
     "MemoryWriteVerdict",
     "memory_extraction_instructions",
     "memory_extraction_instructions_version",
+    "validate_rerank_bounds",
 ]
