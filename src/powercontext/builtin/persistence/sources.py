@@ -22,7 +22,7 @@ from typing import Any, Literal, cast
 
 import rfc8785
 from pydantic import BaseModel, ConfigDict, JsonValue, TypeAdapter
-from sqlalchemy import func, insert, select, tuple_, update
+from sqlalchemy import and_, func, insert, or_, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -338,6 +338,36 @@ class SourceRepository:
         if value is None:
             raise InvalidStoredColumnError("journal_position", "an integer")
         return int(value)
+
+    async def count_after_many(
+        self,
+        connection: AsyncConnection,
+        bounds: Mapping[str, int],
+        /,
+    ) -> dict[str, int]:
+        """Count the persisted Source identities after each scope's journal position.
+
+        The count follows journal identities only. A replayed identity keeps its
+        original position, a lineage-only Source occupies one position, and no
+        Source body, token count, or generation result participates.
+        """
+
+        if not bounds:
+            return {}
+        predicates = []
+        for scope_id, after in bounds.items():
+            _require_identity("scope_id", scope_id, MAX_SCOPE_ID_LENGTH)
+            if not isinstance(after, int) or isinstance(after, bool) or after < 0:
+                raise InvalidRepositoryArgumentError("after", "must be a non-negative integer")
+            predicates.append(and_(SOURCES_TABLE.c.scope_id == scope_id, SOURCES_TABLE.c.journal_position > after))
+        rows = (
+            await connection.execute(
+                select(SOURCES_TABLE.c.scope_id, func.count())
+                .where(or_(*predicates))
+                .group_by(SOURCES_TABLE.c.scope_id)
+            )
+        ).all()
+        return {str(scope_id): int(count) for scope_id, count in rows}
 
     async def read_value(self, source: Source, /) -> object:
         """Read one decoded Source through the same registered adapter route."""

@@ -16,12 +16,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from powercontext.builtin.persistence.cursors import SourceCursorRepository
 from powercontext.builtin.persistence.database import AsyncDatabase
 from powercontext.builtin.persistence.processing_intents import ArtifactProcessingIntentRepository
+from powercontext.builtin.persistence.sources import SourceRepository
 from powercontext.builtin.persistence.supervision import ArtifactProcessingFence, ArtifactProcessingLeaseRepository
 from powercontext.builtin.persistence.tables import PROFILE_POLICIES_TABLE, SOURCE_JOURNAL_HEADS_TABLE
 
@@ -43,6 +46,37 @@ async def enabled_profile_scopes(connection: AsyncConnection, scope_ids: tuple[s
         .with_for_update()
     )
     return frozenset(rows)
+
+
+class SourceProcessingPendingCounter:
+    """Count the Source identities each scope still owes one binding.
+
+    The count starts at the binding's last committed Source cursor, so a
+    consumed Source never returns to the pending set and each scope, family,
+    and cursor stays independent.
+    """
+
+    def __init__(self, sources: SourceRepository, binding_name: str) -> None:
+        self._sources = sources
+        self._binding = binding_name
+        self._cursors = SourceCursorRepository()
+
+    async def pending_counts(
+        self,
+        connection: AsyncConnection,
+        scope_ids: tuple[str, ...],
+        /,
+    ) -> Mapping[str, int]:
+        """Return each scope's pending identity count after its committed cursor."""
+
+        if not scope_ids:
+            return {}
+        cursors = await self._cursors.load_many(connection, scope_ids, self._binding)
+        bounds = {
+            scope_id: (0 if cursors.get(scope_id) is None else cursors[scope_id].cursor.sequence)
+            for scope_id in scope_ids
+        }
+        return await self._sources.count_after_many(connection, bounds)
 
 
 class SourceProcessingPendingProvider:
