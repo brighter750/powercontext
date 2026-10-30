@@ -645,6 +645,7 @@ async def open_builtin_runtime(
                 statistics_service=contexts.statistics,
                 record_service=contexts.records,
                 prompt_service=contexts.prompts,
+                source_lifecycle=contexts.source_lifecycle,
                 recall_token_estimator=contexts.estimate_recall_tokens,
                 recall_effort_sink=recall_effort_sink,
                 decision_model=configured_decision,

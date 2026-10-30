@@ -445,10 +445,12 @@ class TopicMemoryRepository:
         query_vector: tuple[float, ...] | None = None,
         embedding_profile: EmbeddingProfile | None = None,
         admission: AdmissionFloor | None = None,
+        excluded_artifact_ids: frozenset[str] = frozenset(),
     ) -> TopicMemorySearchResult:
         """Search current complete projections and fuse two or four logical channels.
 
         ``admission=None`` applies the historical fusion-time thresholds bit for bit.
+        ``excluded_artifact_ids`` withholds artifacts whose evidence was withdrawn.
         """
 
         if not 1 <= limit <= MAX_TOPIC_MEMORY_SEARCH_LIMIT:
@@ -487,6 +489,20 @@ class TopicMemoryRepository:
             admission=admission,
         )
         channels = await self.index.search(connection, scope_id, request)
+        if excluded_artifact_ids:
+            channels = channels.model_copy(
+                update={
+                    channel: tuple(
+                        hit for hit in hits if hit.artifact_ref.artifact_id not in excluded_artifact_ids
+                    )
+                    for channel, hits in (
+                        ("topic_fts", channels.topic_fts),
+                        ("topic_vector", channels.topic_vector),
+                        ("detail_fts", channels.detail_fts),
+                        ("detail_vector", channels.detail_vector),
+                    )
+                }
+            )
         await self._check_retrieval_shape(connection)
         outcome = _fuse_topic_memory_rankings(query, channels, limit, mode=used_mode, admission=admission)
         return TopicMemorySearchResult(

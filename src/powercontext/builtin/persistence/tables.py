@@ -51,6 +51,7 @@ from powercontext.limits import (
     MAX_SCOPE_SUMMARY_LENGTH,
     MAX_SCOPE_TITLE_LENGTH,
     MAX_SOURCE_ID_LENGTH,
+    MAX_SOURCE_LIFECYCLE_NODE_ID_LENGTH,
     MAX_SOURCE_TYPE_LENGTH,
 )
 
@@ -1022,6 +1023,72 @@ TOPIC_MEMORY_TABLES = (
     TOPIC_MEMORY_ACTIVE_CHUNKS_TABLE,
 )
 
+# Source lifecycle bindings are authoritative records, not derived projections:
+# they decide which Memory entries and Topic Memory artifacts may still be used.
+# The node's recorded availability is the propagated result of its parents, and the
+# event log keeps every accepted lifecycle event so a replay stays idempotent and an
+# interrupted propagation can be retried.
+SOURCE_LIFECYCLE_NODES_TABLE = Table(
+    "pc_source_lifecycle_nodes",
+    SHARED_METADATA,
+    Column("scope_id", identity_string(MAX_SCOPE_ID_LENGTH), primary_key=True),
+    Column("node_id", identity_string(MAX_SOURCE_LIFECYCLE_NODE_ID_LENGTH), primary_key=True),
+    Column("kind", identity_string(16), nullable=False),
+    Column("available", Boolean, nullable=False),
+    Column("policy", identity_string(8)),
+    Column("revision", Integer),
+    Column("sequence", Integer),
+    Column("source_type", identity_string(MAX_SOURCE_TYPE_LENGTH)),
+    Column("source_id", identity_string(MAX_SOURCE_ID_LENGTH)),
+    Column("reference", _canonical_payload_type()),
+    CheckConstraint("kind IN ('source', 'memory', 'topic')", name="ck_pc_source_lifecycle_nodes_kind"),
+    CheckConstraint(
+        "(kind = 'source' AND policy IS NULL AND revision IS NOT NULL) "
+        "OR (kind <> 'source' AND policy IS NOT NULL AND revision IS NULL)",
+        name="ck_pc_source_lifecycle_nodes_shape",
+    ),
+    CheckConstraint("policy IS NULL OR policy IN ('all', 'any')", name="ck_pc_source_lifecycle_nodes_policy"),
+    CheckConstraint("available IN (0, 1)", name="ck_pc_source_lifecycle_nodes_available"),
+    CheckConstraint("revision IS NULL OR revision > 0", name="ck_pc_source_lifecycle_nodes_revision_positive"),
+    CheckConstraint("sequence IS NULL OR sequence > 0", name="ck_pc_source_lifecycle_nodes_sequence_positive"),
+)
+
+SOURCE_LIFECYCLE_EDGES_TABLE = Table(
+    "pc_source_lifecycle_edges",
+    SHARED_METADATA,
+    Column("scope_id", identity_string(MAX_SCOPE_ID_LENGTH), primary_key=True),
+    Column("node_id", identity_string(MAX_SOURCE_LIFECYCLE_NODE_ID_LENGTH), primary_key=True),
+    Column("parent_id", identity_string(MAX_SOURCE_LIFECYCLE_NODE_ID_LENGTH), primary_key=True),
+    Column("ordinal", Integer, nullable=False),
+    ForeignKeyConstraint(
+        ("scope_id", "node_id"),
+        ("pc_source_lifecycle_nodes.scope_id", "pc_source_lifecycle_nodes.node_id"),
+        ondelete="CASCADE",
+    ),
+    CheckConstraint("ordinal >= 0", name="ck_pc_source_lifecycle_edges_ordinal_nonnegative"),
+)
+
+SOURCE_LIFECYCLE_EVENTS_TABLE = Table(
+    "pc_source_lifecycle_events",
+    SHARED_METADATA,
+    Column("scope_id", identity_string(MAX_SCOPE_ID_LENGTH), primary_key=True),
+    Column("node_id", identity_string(MAX_SOURCE_LIFECYCLE_NODE_ID_LENGTH), primary_key=True),
+    Column("sequence", Integer, primary_key=True),
+    Column("revision", Integer, nullable=False),
+    Column("available", Boolean, nullable=False),
+    Column("reason", _entry_text_type(), nullable=False),
+    Column("applied", Boolean, nullable=False),
+    CheckConstraint("sequence > 0", name="ck_pc_source_lifecycle_events_sequence_positive"),
+    CheckConstraint("revision > 0", name="ck_pc_source_lifecycle_events_revision_positive"),
+    CheckConstraint("applied IN (0, 1)", name="ck_pc_source_lifecycle_events_applied"),
+)
+
+SOURCE_LIFECYCLE_TABLES = (
+    SOURCE_LIFECYCLE_NODES_TABLE,
+    SOURCE_LIFECYCLE_EDGES_TABLE,
+    SOURCE_LIFECYCLE_EVENTS_TABLE,
+)
+
 # OceanBase requires FK column lengths to match the parent. A normalized-key
 # fingerprint keeps composite indexes within 3072 bytes without narrowing any
 # Unicode identity or label. Queries also compare the full key, not just its hash.
@@ -1187,5 +1254,6 @@ BUILTIN_TABLES = (
     + MEMORY_TABLES
     + STATISTICS_TABLES
     + RECURRENCE_TABLES
+    + SOURCE_LIFECYCLE_TABLES
     + (ARTIFACT_TAGS_TABLE, DREAM_RUNS_TABLE, RECEIPT_MIGRATION_REVIEW_TABLE)
 )
