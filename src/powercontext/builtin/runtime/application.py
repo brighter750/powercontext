@@ -166,6 +166,7 @@ from powercontext.builtin.runtime._scope_cache import (
     ScopeCacheObserver,
     ScopeEvictor,
 )
+from powercontext.builtin.runtime.context_pack import ContextPack, ContextPackDelta, align_context_pack_to_base
 from powercontext.builtin.runtime.decision_model import DecisionModel
 from powercontext.builtin.runtime.errors import InvalidRuntimeRequestError, TopicMemoryProcessingUnavailableError
 from powercontext.builtin.runtime.models import (
@@ -846,6 +847,37 @@ class ScopedContextApplication:
             if authorize_scopes is not None:
                 await authorize_scopes((self.scope_id, *scope.context_references))
             return await self._prepare(request, scope)
+
+    async def prepare_incremental(
+        self,
+        request: PrepareContextRequest,
+        base_pack: ContextPack | None = None,
+        *,
+        authorize_scopes: Callable[[tuple[str, ...]], Awaitable[None]] | None = None,
+    ) -> ContextPack | ContextPackDelta:
+        """Prepare the same context as :meth:`prepare` and describe it for transfer.
+
+        Without a base pack the result is the complete pack. With a base pack the result
+        is a delta that reuses the base's leading chunks and carries only the suffix, so a
+        receiver holding the base can rebuild the identical content from serialized bytes.
+        The prepared content itself is unchanged: this method only changes how the very
+        same bytes travel.
+        """
+        context = await self.prepare(request, authorize_scopes=authorize_scopes)
+        content = context.content or ""
+        target = ContextPack.from_content(content)
+        if base_pack is None:
+            return target
+        delta = ContextPackDelta.between(base_pack, target)
+        if delta.prefix_items > 0 or not base_pack.items:
+            return delta
+        # The base pack was cut differently than this build cuts content, so no chunk of it
+        # lines up with the target. The base's own chunk boundaries still describe the
+        # leading bytes it holds, and those bytes are what the receiver can keep.
+        aligned = align_context_pack_to_base(base_pack, content)
+        if aligned is None:
+            return delta
+        return ContextPackDelta.between(base_pack, aligned)
 
     async def _prepare(self, request: PrepareContextRequest, scope: ScopeDescriptor, /) -> PreparedContext:
         build, effort = await self._prepare_build(request, scope)
