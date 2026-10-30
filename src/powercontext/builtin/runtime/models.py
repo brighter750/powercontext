@@ -234,6 +234,14 @@ class PrepareContextRequest(_PreparedContextModel):
     max_bytes: Annotated[int, Field(ge=512, le=32768)] = 8000
     assembly: ContextAssembly | None = None
     include_code: bool = Field(default=False, strict=True)
+    evidence_selection: bool = Field(default=False, strict=True)
+    """Select literal evidence spans from the recalled Memory entries.
+
+    Off by default, so an ordinary prepare keeps delivering whole entries. When on, the
+    build carries the query-driven fragments of the recalled Memory text instead, each
+    one a contiguous slice of its entry that keeps the citation of the entry it came
+    from. Only Memory candidates take part in this mode.
+    """
 
     @model_validator(mode="before")
     @classmethod
