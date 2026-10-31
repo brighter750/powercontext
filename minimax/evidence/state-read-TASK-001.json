@@ -1,0 +1,30 @@
+{
+  "task_id": "TASK-001",
+  "description": "实现阶梯满减折扣：按会员折后小计命中 1000 / 5000 / 10000 三档门槛，只取最高一档，不叠加；会员折扣先于阶梯满减计算。",
+  "status": "in_progress",
+  "applicable_specs": [
+    "SPEC-PRICING-102",
+    "SPEC-PRICING-103",
+    "SPEC-PRICING-105"
+  ],
+  "related_code": [
+    "src/order_pricing/discounts.py"
+  ],
+  "related_tests": [
+    "tests/test_tiered_discount.py",
+    "tests/test_member_discount.py",
+    "tests/test_shipping.py",
+    "tests/test_invoice.py"
+  ],
+  "done": [
+    "已导入规格、代码与测试资料到 seekdb 资料库",
+    "已通过数据库倒排索引检索定位适用规格与相关代码符号"
+  ],
+  "todo": [
+    "实现 tiered_discount_rate 的阶梯档位判定（SPEC-PRICING-102）",
+    "运行目标功能测试与回归测试",
+    "记录验证结果并更新任务状态"
+  ],
+  "test_results": [],
+  "updated_at": "2026-10-31T15:13:40+00:00"
+}

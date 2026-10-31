@@ -1,0 +1,51 @@
+# 步骤: 02-import
+# 命令: C:\Users\mazhe\powercontext\.venv\Scripts\python.exe -m sddctx import
+# 运行目录: C:\Users\mazhe\powercontext\minimax
+# 结束时间(UTC): 2026-10-31T15:13:11+00:00
+# 退出码: 0
+# ----------------------------------------------------------------------
+
+===== STDOUT =====
+已写入 C:\Users\mazhe\powercontext\minimax\evidence\import_report.json
+{
+  "backend": "seekdb",
+  "project_root": "C:\\Users\\mazhe\\powercontext\\minimax\\business_project",
+  "imported": {
+    "specs": 13,
+    "code_symbols": 21,
+    "tests": 29,
+    "source_files": 15
+  },
+  "changes": {
+    "specs_inserted": 13,
+    "specs_updated": 0,
+    "specs_unchanged": 0,
+    "code_inserted": 21,
+    "code_updated": 0,
+    "code_unchanged": 0,
+    "tests_inserted": 29,
+    "tests_updated": 0,
+    "tests_unchanged": 0,
+    "tokens_written": 1783,
+    "source_files": [
+      "specs/SPEC-001-pricing.md",
+      "specs/SPEC-002-shipping-invoice.md",
+      "specs/SPEC-003-compatibility.md",
+      "src/order_pricing/__init__.py",
+      "src/order_pricing/discounts.py",
+      "src/order_pricing/invoice.py",
+      "src/order_pricing/models.py",
+      "src/order_pricing/money.py",
+      "src/order_pricing/shipping.py",
+      "tests/conftest.py",
+      "tests/test_invoice.py",
+      "tests/test_member_discount.py",
+      "tests/test_money.py",
+      "tests/test_shipping.py",
+      "tests/test_tiered_discount.py"
+    ]
+  }
+}
+
+===== STDERR =====
+

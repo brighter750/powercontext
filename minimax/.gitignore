@@ -1,0 +1,15 @@
+# 运行期产物与本地凭据，不进入版本库。
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# 上下文模块的运行目录（含嵌入式 seekdb 数据文件与日志）
+.sddctx-run/
+
+# 本地配置（可能包含真实凭据）
+.env
+
+# 仓库根 .gitignore 里有 Django 模板带来的 `*.log`，会误伤本目录下的证据日志，
+# 这里显式放行（证据日志是验收必需材料，必须入库）。
+!evidence/logs/*.log

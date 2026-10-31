@@ -1,0 +1,24 @@
+# 标签: 修改后：目标功能测试与回归测试（与修改前同一组测试文件）
+# 命令: .\.venv\Scripts\python.exe -m pytest tests -q
+# 运行目录: C:\Users\mazhe\powercontext\minimax\business_project
+# 开始时间(UTC): 2026-10-31T15:13:29+00:00
+# 结束时间(UTC): 2026-10-31T15:13:31+00:00
+# 耗时(秒): 1.79
+# 退出码: 0
+# 代码版本: 172ce8bd3b4d25e39db2fda7763718f35155244c (2026-competition-ecosystem) | 工作区改动 12 个文件: minimax/.env.example, minimax/.gitignore, minimax/ACCEPTANCE.md, minimax/README.md, minimax/RUNBOOK.md, minimax/business_project/, minimax/demo/, minimax/evidence/, minimax/patches/, minimax/requirements.txt, minimax/scripts/, minimax/sddctx/
+# Python: 3.12.16
+# 测试文件指纹（sha256）：
+    conftest.py: sha256=076efab9648ee88cde667fd0a1a76c5ac0a0c8e1202a29070b0b6e780ae00430
+    test_invoice.py: sha256=914e9f07b91d49c28403ad61c076fddb9d8f53ecd3d2c22b82147681fe754999
+    test_member_discount.py: sha256=bdcd4c1b8a1a4b204a8a106f7f92c1036e13ba1c33b59715c463d2db8956705c
+    test_money.py: sha256=cc0e638a6572fb4730a0892de4f93b7798c1f76102b0ef3cd6331e01de1cde86
+    test_shipping.py: sha256=84f5cf087e3c486639d8d44d1adf11c808a4d17801ac92d16ced5638b4546cdc
+    test_tiered_discount.py: sha256=dd536ea6264f9d40d175e193c95d080579229470a37c120760b7129d5f180ff1
+# ----------------------------------------------------------------------
+
+===== STDOUT =====
+.............................                                            [100%]
+29 passed in 0.03s
+
+===== STDERR =====
+

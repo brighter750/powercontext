@@ -1,0 +1,735 @@
+{
+  "task_id": "TASK-SPEC-UPDATE",
+  "task": "实现阶梯满减折扣：按会员折后小计命中 1000/5000/10000 门槛档位，只取最高一档，不叠加；会员折扣先于阶梯满减计算。",
+  "specs": [
+    {
+      "spec_id": "SPEC-PRICING-102",
+      "title": "阶梯满减（本次任务要实现的目标行为）",
+      "body": "- 阶梯门槛按**会员折扣之后的小计**判断（即 `discounted_subtotal`）。\n- 折扣率口径与会员折扣一致，均为“减去的比例”（`0.15` 表示减 15%）。\n- 折扣档位（只取最高一档，不叠加）：\n\n  | `discounted_subtotal` 门槛 | 满减折扣率 | 折后系数 |\n  | --- | --- | --- |\n  | `>= 10000` | `0.15` | `0.85` |\n  | `>= 5000` | `0.10` | `0.90` |\n  | `>= 1000` | `0.05` | `0.95` |\n  | `< 1000` | `0`（不打折） | `1` |\n\n- 门槛是**闭区间**：`discounted_subtotal` 恰好等于 `1000` 时适用 `0.05`。\n- 阶梯满减同样只作用于商品小计，不作用于运费与税额。",
+      "source_path": "specs/SPEC-001-pricing.md",
+      "source_line": 13,
+      "revision": 3,
+      "content_hash": "7641cb52596d768c43f42090a828bae8",
+      "tags": [
+        "PRICING",
+        "目标行为"
+      ]
+    },
+    {
+      "spec_id": "SPEC-PRICING-103",
+      "title": "叠加顺序",
+      "body": "- 计算顺序固定为：\n  1. 计算商品小计 `subtotal`；\n  2. 应用会员折扣，得到 `discounted_subtotal`；\n  3. 用 `discounted_subtotal` 判断阶梯满减档位，得到 `tier_rate`；\n  4. 最终商品金额 `= 会员折后小计 × (1 - tier_rate)`。\n- 会员折扣与阶梯满减不得互相抵消，也不得各自作用于不同的小计口径。",
+      "source_path": "specs/SPEC-001-pricing.md",
+      "source_line": 29,
+      "revision": 1,
+      "content_hash": "2f2cc5c3b704048397c84f79684d5a4c",
+      "tags": [
+        "PRICING"
+      ]
+    },
+    {
+      "spec_id": "SPEC-COMPAT-401",
+      "title": "既有公开函数签名",
+      "body": "下列函数必须继续以相同名称与签名存在：\n\n| 函数 | 模块 | 约束 |\n| --- | --- | --- |\n| `subtotal(order)` | `order_pricing.discounts` | 返回商品小计 |\n| `member_discount_rate(order)` | `order_pricing.discounts` | 返回会员折扣率 |\n| `member_discounted_subtotal(order)` | `order_pricing.discounts` | 返回会员折后小计 |\n| `tiered_discount_rate(discounted_subtotal)` | `order_pricing.discounts` | 返回阶梯满减折扣率 |\n| `apply_discounts(order)` | `order_pricing.discounts` | 返回 `DiscountResult` |\n| `shipping_fee(order, discounted_subtotal)` | `order_pricing.shipping` | 返回运费 |\n| `invoice_total(order)` | `order_pricing.invoice` | 返回 `Invoice` |\n| `quantize(amount)` | `order_pricing.money` | 两位小数 `ROUND_HALF_UP` |",
+      "source_path": "specs/SPEC-003-compatibility.md",
+      "source_line": 7,
+      "revision": 1,
+      "content_hash": "1efe9639d612ae8b69a84ea715bdd9f1",
+      "tags": [
+        "COMPAT"
+      ]
+    },
+    {
+      "spec_id": "SPEC-PRICING-105",
+      "title": "结果可读性",
+      "body": "- 计价结果必须同时暴露：商品小计、会员折扣率、阶梯满减折扣率、最终折后小计，\n  以便上层展示与测试断言。",
+      "source_path": "specs/SPEC-001-pricing.md",
+      "source_line": 43,
+      "revision": 1,
+      "content_hash": "854c49539e44040eb3832cda0d12db8b",
+      "tags": [
+        "PRICING"
+      ]
+    },
+    {
+      "spec_id": "SPEC-SHIPPING-201",
+      "title": "免运费门槛（既有行为，必须保持）",
+      "body": "- 折后小计 `discounted_subtotal` **大于等于** `99` 时免运费，运费为 `0`。\n- 折后小计小于 `99` 时收取运费 `10`。\n- 门槛比较使用折后小计，不使用原始小计，也不使用含税金额。",
+      "source_path": "specs/SPEC-002-shipping-invoice.md",
+      "source_line": 5,
+      "revision": 1,
+      "content_hash": "fac678e9e0aef8b69e4df72e5894f71b",
+      "tags": [
+        "SHIPPING",
+        "既有行为"
+      ]
+    },
+    {
+      "spec_id": "SPEC-PRICING-101",
+      "title": "会员等级折扣（既有行为，必须保持）",
+      "body": "- 会员等级取值 `gold` / `silver` / `none`。\n- `gold` 的会员折扣率为 `0.05`，`silver` 为 `0.03`，`none` 为 `0`。\n- 会员折扣只作用于**商品小计**（`subtotal`），不作用于运费与税额。\n- 未知等级按 `none` 处理，不得抛出异常。",
+      "source_path": "specs/SPEC-001-pricing.md",
+      "source_line": 6,
+      "revision": 1,
+      "content_hash": "d16d9647e5cabb6707865123ea1fcea3",
+      "tags": [
+        "PRICING",
+        "既有行为"
+      ]
+    },
+    {
+      "spec_id": "SPEC-INVOICE-302",
+      "title": "发票总额构成（既有行为，必须保持）",
+      "body": "- 发票总额 `= 折后小计 + 运费 + 税额`。\n- 发票必须同时给出：折后小计、运费、税额、总额。\n- 总额按 `ROUND_HALF_UP` 保留两位小数。",
+      "source_path": "specs/SPEC-002-shipping-invoice.md",
+      "source_line": 22,
+      "revision": 1,
+      "content_hash": "e0afe441292dd89621dbd75c111e8bfd",
+      "tags": [
+        "INVOICE",
+        "既有行为"
+      ]
+    },
+    {
+      "spec_id": "SPEC-COMPAT-403",
+      "title": "既有边界行为",
+      "body": "- 空订单（`lines` 为空）商品小计为 `0`，不抛异常。\n- 数量为 `0` 的订单行对小计无贡献。\n- 负单价属于非法输入，必须抛出 `ValueError`。\n- 未知会员等级按 `none` 处理（见 SPEC-PRICING-101）。",
+      "source_path": "specs/SPEC-003-compatibility.md",
+      "source_line": 28,
+      "revision": 1,
+      "content_hash": "37aaf0880263ae5a9824ca9a71c69626",
+      "tags": [
+        "COMPAT"
+      ]
+    }
+  ],
+  "code": [
+    {
+      "symbol": "DiscountResult",
+      "kind": "class",
+      "file_path": "src/order_pricing/discounts.py",
+      "line": 38,
+      "signature": "class DiscountResult:",
+      "source_path": "src/order_pricing/discounts.py",
+      "revision": 1,
+      "content_hash": "12df86f93d5cdddf002de3c2f3f63bb0"
+    },
+    {
+      "symbol": "member_discount_rate",
+      "kind": "function",
+      "file_path": "src/order_pricing/discounts.py",
+      "line": 56,
+      "signature": "def member_discount_rate(order: Order) -> Decimal:",
+      "source_path": "src/order_pricing/discounts.py",
+      "revision": 1,
+      "content_hash": "18f9bbf9318fba1c4b26d930e40ded61"
+    },
+    {
+      "symbol": "member_discounted_subtotal",
+      "kind": "function",
+      "file_path": "src/order_pricing/discounts.py",
+      "line": 62,
+      "signature": "def member_discounted_subtotal(order: Order) -> Decimal:",
+      "source_path": "src/order_pricing/discounts.py",
+      "revision": 1,
+      "content_hash": "73d7a6679c2a3cb5e5f4f56f0d8dbcf7"
+    },
+    {
+      "symbol": "tiered_discount_rate",
+      "kind": "function",
+      "file_path": "src/order_pricing/discounts.py",
+      "line": 68,
+      "signature": "def tiered_discount_rate(discounted_subtotal: Decimal) -> Decimal:",
+      "source_path": "src/order_pricing/discounts.py",
+      "revision": 1,
+      "content_hash": "194daa7c5c531c12208736b61e38bb9f"
+    },
+    {
+      "symbol": "apply_discounts",
+      "kind": "function",
+      "file_path": "src/order_pricing/discounts.py",
+      "line": 81,
+      "signature": "def apply_discounts(order: Order) -> DiscountResult:",
+      "source_path": "src/order_pricing/discounts.py",
+      "revision": 1,
+      "content_hash": "e8a30bf63e1fbe9e07126522349769c5"
+    },
+    {
+      "symbol": "Invoice",
+      "kind": "class",
+      "file_path": "src/order_pricing/invoice.py",
+      "line": 21,
+      "signature": "class Invoice:",
+      "source_path": "src/order_pricing/invoice.py",
+      "revision": 1,
+      "content_hash": "91b059852dcfb844120fb4ed782874d2"
+    },
+    {
+      "symbol": "invoice_total",
+      "kind": "function",
+      "file_path": "src/order_pricing/invoice.py",
+      "line": 30,
+      "signature": "def invoice_total(order: Order) -> Invoice:",
+      "source_path": "src/order_pricing/invoice.py",
+      "revision": 1,
+      "content_hash": "5e477b170166dc1983d73743fb2f9abb"
+    },
+    {
+      "symbol": "shipping_fee",
+      "kind": "function",
+      "file_path": "src/order_pricing/shipping.py",
+      "line": 19,
+      "signature": "def shipping_fee(order: Order, discounted_subtotal: Decimal) -> Decimal:",
+      "source_path": "src/order_pricing/shipping.py",
+      "revision": 1,
+      "content_hash": "3a90dbbe004c5d387482c3c303fe7c6e"
+    }
+  ],
+  "tests": [
+    {
+      "test_name": "test_invoice_contains_subtotal_shipping_tax_and_total",
+      "file_path": "tests/test_invoice.py",
+      "line": 19,
+      "source_path": "tests/test_invoice.py",
+      "requirement_ids": [
+        "SPEC-INVOICE-302"
+      ],
+      "docstring": "SPEC-INVOICE-302：发票给出折后小计、运费、税额与总额。",
+      "revision": 1,
+      "content_hash": "c2ddfdc662ffcabcbf583cd7808d5e6e"
+    },
+    {
+      "test_name": "test_invoice_applies_member_discount",
+      "file_path": "tests/test_invoice.py",
+      "line": 38,
+      "source_path": "tests/test_invoice.py",
+      "requirement_ids": [
+        "SPEC-INVOICE-301",
+        "SPEC-PRICING-101"
+      ],
+      "docstring": "SPEC-PRICING-101 / SPEC-INVOICE-301：会员折扣会影响计税基数。",
+      "revision": 1,
+      "content_hash": "6fd59cd9391593310c8eabd3e6e75f94"
+    },
+    {
+      "test_name": "test_no_member_has_no_discount",
+      "file_path": "tests/test_member_discount.py",
+      "line": 18,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-101"
+      ],
+      "docstring": "SPEC-PRICING-101：none 等级没有会员折扣。",
+      "revision": 1,
+      "content_hash": "d6b8db620c256e17f3721be2f7440fa8"
+    },
+    {
+      "test_name": "test_apply_discounts_exposes_intermediate_values",
+      "file_path": "tests/test_member_discount.py",
+      "line": 97,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-105"
+      ],
+      "docstring": "SPEC-PRICING-105：结果必须暴露小计、会员折扣率与折后小计。",
+      "revision": 1,
+      "content_hash": "c0deb7fb8d9d8f3ec24d0c1436ef2306"
+    },
+    {
+      "test_name": "test_shipping_is_free_at_threshold",
+      "file_path": "tests/test_shipping.py",
+      "line": 15,
+      "source_path": "tests/test_shipping.py",
+      "requirement_ids": [
+        "SPEC-SHIPPING-201"
+      ],
+      "docstring": "SPEC-SHIPPING-201：折后小计恰好 99 时免运费。",
+      "revision": 1,
+      "content_hash": "493ebd8771b1d16ed76bf639e3489b18"
+    },
+    {
+      "test_name": "test_shipping_is_charged_below_threshold",
+      "file_path": "tests/test_shipping.py",
+      "line": 21,
+      "source_path": "tests/test_shipping.py",
+      "requirement_ids": [
+        "SPEC-SHIPPING-201"
+      ],
+      "docstring": "SPEC-SHIPPING-201：折后小计小于 99 时收取运费。",
+      "revision": 1,
+      "content_hash": "5fa786a44dd17499cd254a53ff93d979"
+    },
+    {
+      "test_name": "test_at_1000_threshold_applies_five_percent",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 32,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-102"
+      ],
+      "docstring": "SPEC-PRICING-102：门槛是闭区间，恰好 1000 适用 0.05。",
+      "revision": 1,
+      "content_hash": "bd74a66d914eb2bb98f56d5406739032"
+    },
+    {
+      "test_name": "test_between_1000_and_5000_applies_five_percent",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 38,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-102"
+      ],
+      "docstring": "SPEC-PRICING-102：1000 与 5000 之间适用 0.05。",
+      "revision": 1,
+      "content_hash": "64ccf2605d709a896f56f3162596f1ab"
+    },
+    {
+      "test_name": "test_between_5000_and_10000_applies_ten_percent",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 50,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-102"
+      ],
+      "docstring": "SPEC-PRICING-102：5000 与 10000 之间适用 0.10。",
+      "revision": 1,
+      "content_hash": "f3cee38a779ee2263558727f384d54a1"
+    },
+    {
+      "test_name": "test_at_10000_threshold_applies_fifteen_percent",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 56,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-102"
+      ],
+      "docstring": "SPEC-PRICING-102：恰好 10000 适用 0.15。",
+      "revision": 1,
+      "content_hash": "207e6caf8518d234f4b2fd40fd0e01f4"
+    },
+    {
+      "test_name": "test_only_the_highest_tier_applies",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 62,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-102"
+      ],
+      "docstring": "SPEC-PRICING-102：超过 10000 时只取 0.15 一档，不与 0.05 / 0.10 叠加。",
+      "revision": 1,
+      "content_hash": "d14bd6794b4be5c6700981a5395b62bf"
+    },
+    {
+      "test_name": "test_tier_threshold_uses_member_discounted_subtotal",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 71,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-103"
+      ],
+      "docstring": "SPEC-PRICING-103：门槛按会员折扣之后的小计判断。\n\n小计 1000、gold 会员（5%）后为 950，低于 1000 门槛，因此不应触发阶梯满减。\n如果实现错误地使用折扣前的小计，这里会得到 0.05。",
+      "revision": 1,
+      "content_hash": "95ffe12905efb55d162c9a4d69f2afc9"
+    },
+    {
+      "test_name": "test_tier_applies_when_member_discounted_subtotal_reaches_threshold",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 84,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-103"
+      ],
+      "docstring": "SPEC-PRICING-103：小计 1050、gold 会员后为 997.5，仍不触发；小计 1053、none 会员为 1053，触发 0.05。",
+      "revision": 1,
+      "content_hash": "598e9e3d12a75628fb0a87021014f8b9"
+    },
+    {
+      "test_name": "test_apply_discounts_applies_member_then_tier",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 106,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-103"
+      ],
+      "docstring": "SPEC-PRICING-103：小计 12000、gold 会员：先打 5% 得到 11400，再按 11400 命中 0.15 档。",
+      "revision": 1,
+      "content_hash": "c41db6f052e94a02a31211e908067837"
+    },
+    {
+      "test_name": "test_silver_member_discount_is_three_percent",
+      "file_path": "tests/test_member_discount.py",
+      "line": 26,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-101"
+      ],
+      "docstring": "SPEC-PRICING-101：silver 折扣率为 0.03。",
+      "revision": 1,
+      "content_hash": "c9c06037f3fc9e3d09be772e36d3b9bd"
+    },
+    {
+      "test_name": "test_gold_member_discount_is_five_percent",
+      "file_path": "tests/test_member_discount.py",
+      "line": 38,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-101"
+      ],
+      "docstring": "SPEC-PRICING-101：gold 折扣率为 0.05。",
+      "revision": 1,
+      "content_hash": "7759f299ff8fab28d3b3c259fa4bcee6"
+    },
+    {
+      "test_name": "test_unknown_member_tier_falls_back_to_none",
+      "file_path": "tests/test_member_discount.py",
+      "line": 50,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-COMPAT-403",
+        "SPEC-PRICING-101"
+      ],
+      "docstring": "SPEC-PRICING-101 / SPEC-COMPAT-403：未知等级按 none 处理，不抛异常。",
+      "revision": 1,
+      "content_hash": "ef1857ec1e2147c90718d2b9c7f6fbc0"
+    },
+    {
+      "test_name": "test_subtotal_multiplies_price_by_quantity",
+      "file_path": "tests/test_member_discount.py",
+      "line": 61,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-101"
+      ],
+      "docstring": "SPEC-PRICING-101：小计 = 单价 × 数量。",
+      "revision": 1,
+      "content_hash": "45bdc4d430e56440c9a0c12cbf059308"
+    },
+    {
+      "test_name": "test_empty_order_subtotal_is_zero",
+      "file_path": "tests/test_member_discount.py",
+      "line": 71,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-COMPAT-403"
+      ],
+      "docstring": "SPEC-COMPAT-403：空订单小计为 0，不抛异常。",
+      "revision": 1,
+      "content_hash": "2348ff2f7debab7267861f66283267d4"
+    },
+    {
+      "test_name": "test_zero_quantity_line_contributes_nothing",
+      "file_path": "tests/test_member_discount.py",
+      "line": 77,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-COMPAT-403"
+      ],
+      "docstring": "SPEC-COMPAT-403：数量为 0 的订单行对小计无贡献。",
+      "revision": 1,
+      "content_hash": "f9b2769d39446dc9cd985aa278c48f94"
+    },
+    {
+      "test_name": "test_negative_unit_price_is_rejected",
+      "file_path": "tests/test_member_discount.py",
+      "line": 90,
+      "source_path": "tests/test_member_discount.py",
+      "requirement_ids": [
+        "SPEC-COMPAT-403"
+      ],
+      "docstring": "SPEC-COMPAT-403：负单价属于非法输入，必须抛出 ValueError。",
+      "revision": 1,
+      "content_hash": "80f2c8ac0f88b06bd1f6ab05f8cf5677"
+    },
+    {
+      "test_name": "test_quantize_rejects_non_decimal",
+      "file_path": "tests/test_money.py",
+      "line": 25,
+      "source_path": "tests/test_money.py",
+      "requirement_ids": [
+        "SPEC-COMPAT-403"
+      ],
+      "docstring": "SPEC-COMPAT-403：非 Decimal 输入必须被拒绝。",
+      "revision": 1,
+      "content_hash": "41f6cfe1cab4a49cea1b6beecb07f669"
+    },
+    {
+      "test_name": "test_shipping_is_free_above_threshold",
+      "file_path": "tests/test_shipping.py",
+      "line": 27,
+      "source_path": "tests/test_shipping.py",
+      "requirement_ids": [
+        "SPEC-SHIPPING-201",
+        "SPEC-SHIPPING-202"
+      ],
+      "docstring": "SPEC-SHIPPING-201 / SPEC-SHIPPING-202：高于门槛时运费为 0。",
+      "revision": 1,
+      "content_hash": "0a76408ce4e57d01dc84c2e280135a3b"
+    },
+    {
+      "test_name": "test_below_threshold_has_no_tier_discount",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 26,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-102"
+      ],
+      "docstring": "SPEC-PRICING-102：低于 1000 门槛不打折。",
+      "revision": 1,
+      "content_hash": "b1aea66d1c5ec7700258b8cb5a40a05a"
+    },
+    {
+      "test_name": "test_at_5000_threshold_applies_ten_percent",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 44,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-102"
+      ],
+      "docstring": "SPEC-PRICING-102：恰好 5000 适用 0.10。",
+      "revision": 1,
+      "content_hash": "7430f0106b5c3376148f9b2542f5d676"
+    },
+    {
+      "test_name": "test_apply_discounts_reports_tier_rate_and_final_amount",
+      "file_path": "tests/test_tiered_discount.py",
+      "line": 96,
+      "source_path": "tests/test_tiered_discount.py",
+      "requirement_ids": [
+        "SPEC-PRICING-103",
+        "SPEC-PRICING-105"
+      ],
+      "docstring": "SPEC-PRICING-105 / SPEC-PRICING-103：结果必须暴露阶梯折扣率与最终金额。",
+      "revision": 1,
+      "content_hash": "9cfee31eb18a711041b0bb3cba6a58d6"
+    }
+  ],
+  "state": null,
+  "retrieval": {
+    "query": "实现阶梯满减折扣：按会员折后小计命中 1000/5000/10000 门槛档位，只取最高一档，不叠加；会员折扣先于阶梯满减计算。",
+    "spec_ids": [
+      "SPEC-PRICING-102",
+      "SPEC-PRICING-103",
+      "SPEC-COMPAT-401",
+      "SPEC-PRICING-105",
+      "SPEC-SHIPPING-201",
+      "SPEC-PRICING-101",
+      "SPEC-INVOICE-302",
+      "SPEC-COMPAT-403"
+    ],
+    "code_item_ids": [
+      "src/order_pricing/discounts.py::DiscountResult",
+      "src/order_pricing/discounts.py::member_discount_rate",
+      "src/order_pricing/discounts.py::member_discounted_subtotal",
+      "src/order_pricing/discounts.py::tiered_discount_rate",
+      "src/order_pricing/discounts.py::apply_discounts",
+      "src/order_pricing/invoice.py::Invoice",
+      "src/order_pricing/invoice.py::invoice_total",
+      "src/order_pricing/shipping.py::shipping_fee"
+    ],
+    "test_item_ids": [
+      "tests/test_invoice.py::test_invoice_contains_subtotal_shipping_tax_and_total",
+      "tests/test_invoice.py::test_invoice_applies_member_discount",
+      "tests/test_member_discount.py::test_no_member_has_no_discount",
+      "tests/test_member_discount.py::test_apply_discounts_exposes_intermediate_values",
+      "tests/test_shipping.py::test_shipping_is_free_at_threshold",
+      "tests/test_shipping.py::test_shipping_is_charged_below_threshold",
+      "tests/test_tiered_discount.py::test_at_1000_threshold_applies_five_percent",
+      "tests/test_tiered_discount.py::test_between_1000_and_5000_applies_five_percent",
+      "tests/test_tiered_discount.py::test_between_5000_and_10000_applies_ten_percent",
+      "tests/test_tiered_discount.py::test_at_10000_threshold_applies_fifteen_percent",
+      "tests/test_tiered_discount.py::test_only_the_highest_tier_applies",
+      "tests/test_tiered_discount.py::test_tier_threshold_uses_member_discounted_subtotal",
+      "tests/test_tiered_discount.py::test_tier_applies_when_member_discounted_subtotal_reaches_threshold",
+      "tests/test_tiered_discount.py::test_apply_discounts_applies_member_then_tier",
+      "tests/test_member_discount.py::test_silver_member_discount_is_three_percent",
+      "tests/test_member_discount.py::test_gold_member_discount_is_five_percent",
+      "tests/test_member_discount.py::test_unknown_member_tier_falls_back_to_none",
+      "tests/test_member_discount.py::test_subtotal_multiplies_price_by_quantity",
+      "tests/test_member_discount.py::test_empty_order_subtotal_is_zero",
+      "tests/test_member_discount.py::test_zero_quantity_line_contributes_nothing",
+      "tests/test_member_discount.py::test_negative_unit_price_is_rejected",
+      "tests/test_money.py::test_quantize_rejects_non_decimal",
+      "tests/test_shipping.py::test_shipping_is_free_above_threshold",
+      "tests/test_tiered_discount.py::test_below_threshold_has_no_tier_discount",
+      "tests/test_tiered_discount.py::test_at_5000_threshold_applies_ten_percent",
+      "tests/test_tiered_discount.py::test_apply_discounts_reports_tier_rate_and_final_amount"
+    ],
+    "hits": [
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-PRICING-102",
+        "score": 41
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-PRICING-103",
+        "score": 23
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_tier_threshold_uses_member_discounted_subtotal",
+        "score": 20
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-COMPAT-401",
+        "score": 14
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-PRICING-105",
+        "score": 12
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-SHIPPING-201",
+        "score": 12
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-PRICING-101",
+        "score": 10
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_member_discount.py::test_apply_discounts_exposes_intermediate_values",
+        "score": 7
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-INVOICE-302",
+        "score": 6
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_apply_discounts_applies_member_then_tier",
+        "score": 6
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_between_1000_and_5000_applies_five_percent",
+        "score": 6
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_between_5000_and_10000_applies_ten_percent",
+        "score": 6
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_only_the_highest_tier_applies",
+        "score": 6
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_tier_applies_when_member_discounted_subtotal_reaches_threshold",
+        "score": 6
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_at_1000_threshold_applies_five_percent",
+        "score": 4
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-COMPAT-403",
+        "score": 3
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-INVOICE-301",
+        "score": 3
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_invoice.py::test_invoice_applies_member_discount",
+        "score": 3
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_invoice.py::test_invoice_contains_subtotal_shipping_tax_and_total",
+        "score": 3
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_member_discount.py::test_no_member_has_no_discount",
+        "score": 3
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_shipping.py::test_shipping_is_charged_below_threshold",
+        "score": 3
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_shipping.py::test_shipping_is_free_at_threshold",
+        "score": 3
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_at_10000_threshold_applies_fifteen_percent",
+        "score": 3
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_at_5000_threshold_applies_ten_percent",
+        "score": 3
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-SHIPPING-202",
+        "score": 2
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_member_discount.py::test_subtotal_multiplies_price_by_quantity",
+        "score": 2
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_apply_discounts_reports_tier_rate_and_final_amount",
+        "score": 2
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_tiered_discount.py::test_below_threshold_has_no_tier_discount",
+        "score": 2
+      },
+      {
+        "item_kind": "spec",
+        "item_id": "SPEC-PRICING-104",
+        "score": 1
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_invoice.py::test_invoice_charges_shipping_below_free_threshold",
+        "score": 1
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_member_discount.py::test_empty_order_subtotal_is_zero",
+        "score": 1
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_member_discount.py::test_gold_member_discount_is_five_percent",
+        "score": 1
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_member_discount.py::test_silver_member_discount_is_three_percent",
+        "score": 1
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_member_discount.py::test_zero_quantity_line_contributes_nothing",
+        "score": 1
+      },
+      {
+        "item_kind": "test",
+        "item_id": "tests/test_shipping.py::test_shipping_is_free_above_threshold",
+        "score": 1
+      }
+    ]
+  }
+}

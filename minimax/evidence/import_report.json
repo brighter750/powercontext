@@ -1,0 +1,39 @@
+{
+  "backend": "seekdb",
+  "project_root": "C:\\Users\\mazhe\\powercontext\\minimax\\business_project",
+  "imported": {
+    "specs": 13,
+    "code_symbols": 21,
+    "tests": 29,
+    "source_files": 15
+  },
+  "changes": {
+    "specs_inserted": 0,
+    "specs_updated": 1,
+    "specs_unchanged": 12,
+    "code_inserted": 0,
+    "code_updated": 0,
+    "code_unchanged": 21,
+    "tests_inserted": 0,
+    "tests_updated": 0,
+    "tests_unchanged": 29,
+    "tokens_written": 1783,
+    "source_files": [
+      "specs/SPEC-001-pricing.md",
+      "specs/SPEC-002-shipping-invoice.md",
+      "specs/SPEC-003-compatibility.md",
+      "src/order_pricing/__init__.py",
+      "src/order_pricing/discounts.py",
+      "src/order_pricing/invoice.py",
+      "src/order_pricing/models.py",
+      "src/order_pricing/money.py",
+      "src/order_pricing/shipping.py",
+      "tests/conftest.py",
+      "tests/test_invoice.py",
+      "tests/test_member_discount.py",
+      "tests/test_money.py",
+      "tests/test_shipping.py",
+      "tests/test_tiered_discount.py"
+    ]
+  }
+}
