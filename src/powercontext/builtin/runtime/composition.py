@@ -83,6 +83,7 @@ from powercontext.builtin.inference.usage import (
 from powercontext.builtin.persistence.dream_schema import ensure_dream_schema
 from powercontext.builtin.persistence.memory_index import CompositeMemoryIndex, MemoryIndex
 from powercontext.builtin.persistence.oceanbase.experience_index import OceanBaseExperienceFTSIndex
+from powercontext.builtin.persistence.oceanbase.hybrid_memory_index import OceanBaseHybridMemoryIndex
 from powercontext.builtin.persistence.oceanbase.memory_index import (
     OceanBaseMemoryFTSIndex,
     OceanBaseMemoryVectorIndex,
@@ -976,10 +977,10 @@ async def open_builtin_contexts(
                 await contexts.aclose_usage_recorder()
         return
     experience_index = OceanBaseExperienceFTSIndex()
-    indexes = [OceanBaseMemoryFTSIndex()]
-    if embedding_model is not None:
-        indexes.append(OceanBaseMemoryVectorIndex(embedding_model.profile))
-    index = CompositeMemoryIndex(*indexes)
+    # The hybrid coordinator owns the one-statement candidate query; a single
+    # channel still runs through the index that owns it.
+    memory_vector_index = OceanBaseMemoryVectorIndex(embedding_model.profile) if embedding_model is not None else None
+    index = CompositeMemoryIndex(OceanBaseHybridMemoryIndex(OceanBaseMemoryFTSIndex(), memory_vector_index))
     topic_indexes: list[TopicMemoryIndex] = [OceanBaseTopicMemoryFTSIndex()]
     if embedding_model is not None:
         topic_indexes.append(OceanBaseTopicMemoryVectorIndex(embedding_model.profile))

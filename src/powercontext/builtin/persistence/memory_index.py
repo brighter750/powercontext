@@ -44,16 +44,51 @@ def memory_channel_hits(
     # row would require re-stamping every projection row on each revision; the
     # requested ref is the authority the caller already checked.
     requested = {memory.artifact_id: memory for memory in memories}
-    return tuple(
-        MemoryChannelHit(
-            memory_ref=requested[str(row["memory_artifact_id"])],
-            entry_id=str(row["entry_id"]),
-            entry_version_id=str(row["entry_version_id"]),
-            text=str(row["text"]),
-            distance=None if row.get("distance") is None else float(row["distance"]),
-        )
-        for row in rows
-        if str(row["memory_artifact_id"]) in requested
+    hits = (_memory_channel_hit(row, requested) for row in rows)
+    return tuple(hit for hit in hits if hit is not None)
+
+
+def memory_channel_hits_by_channel(
+    rows: Iterable[Mapping[Any, Any]],
+    memories: tuple[ArtifactRef, ...],
+    /,
+) -> MemorySearchChannels:
+    """Split one tagged candidate stream into the ordered per-channel rankings.
+
+    A single hybrid statement returns both channels' candidates. Each block
+    carries its own channel ranking, so the rows of one channel stay in the
+    order the database returned them and the shared fusion step sees exactly
+    the rankings the separate per-channel statements would have produced.
+    """
+    requested = {memory.artifact_id: memory for memory in memories}
+    fts: list[MemoryChannelHit] = []
+    vector: list[MemoryChannelHit] = []
+    for row in rows:
+        hit = _memory_channel_hit(row, requested)
+        if hit is None:
+            continue
+        channel = str(row["channel"])
+        if channel == "fts":
+            fts.append(hit)
+        elif channel == "vector":
+            vector.append(hit)
+    return MemorySearchChannels(fts=tuple(fts), vector=tuple(vector))
+
+
+def _memory_channel_hit(
+    row: Mapping[Any, Any],
+    requested: Mapping[str, ArtifactRef],
+) -> MemoryChannelHit | None:
+    """Build one channel candidate, or ``None`` for a row outside the request."""
+    artifact_id = str(row["memory_artifact_id"])
+    if artifact_id not in requested:
+        return None
+    return MemoryChannelHit(
+        memory_ref=requested[artifact_id],
+        entry_id=str(row["entry_id"]),
+        entry_version_id=str(row["entry_version_id"]),
+        text=str(row["text"]),
+        distance=None if row.get("distance") is None else float(row["distance"]),
     )
 
 
