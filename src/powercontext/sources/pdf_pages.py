@@ -382,6 +382,9 @@ async def search_pdf_pages(
     limit is applied. The reranking weighs the line of a page that states its
     subject best, so a page that names the subject of the question outranks a
     page that merely repeats one of its words.
+
+    A logical page is cited once, so the two revisions of one document never
+    answer a question with the same page twice.
     """
 
     if limit < 1:
@@ -625,6 +628,27 @@ def _rank_candidates(
     return [hits_by_key[key] for key, _score in ranked]
 
 
+def _logical_page_location(source_id: str) -> tuple[str, int] | None:
+    """Return the document identity and the physical page a page source names.
+
+    A PDF page source names its document identity and its physical page, so the
+    two revisions of one document name the same logical page even though their
+    sources differ. The document identity is the quoted document identifier, or
+    its digest when the identifier is too long to fit a source identifier, so it
+    stays the same across the revisions of one document and differs between
+    documents.
+    """
+
+    parts = source_id.split(":")
+    if len(parts) != 4 or parts[0] != PDF_PAGE_SOURCE_NAME:
+        return None
+    try:
+        page_number = int(parts[3])
+    except ValueError:
+        return None
+    return parts[1], page_number
+
+
 async def _cite_pages(
     memory: PDFPageMemory,
     ranked: Sequence[MemoryHit],
@@ -633,8 +657,9 @@ async def _cite_pages(
     """Resolve the ranked candidates into distinct page citations.
 
     Each candidate is read back through the Memory so the citation is the one
-    the Memory reports for that entry, and so a page that several entries
-    reference is only cited once.
+    the Memory reports for that entry. A logical page is cited once: the two
+    revisions of one document name the same page, and citing both would offer
+    the same page twice.
     """
 
     from powercontext.builtin.artifacts.memory.errors import (
@@ -644,7 +669,7 @@ async def _cite_pages(
     from powercontext.builtin.runtime.models import GetMemoryEntryRequest
 
     citations: list[MemoryCitation] = []
-    used: set[str] = set()
+    used: set[tuple[str, int]] = set()
     for hit in ranked:
         if len(citations) >= limit:
             break
@@ -657,11 +682,15 @@ async def _cite_pages(
             record = await memory.get(GetMemoryEntryRequest(citation=citation))
         except (InvalidMemoryCitationError, MemoryEntryInactiveError):
             continue
-        pages = {
-            reference.source_id for reference in record.entry.sources if reference.source_type == PDF_PAGE_SOURCE_NAME
+        locations = {
+            location
+            for reference in record.entry.sources
+            if reference.source_type == PDF_PAGE_SOURCE_NAME
+            for location in (_logical_page_location(reference.source_id),)
+            if location is not None
         }
-        if not pages or pages & used:
+        if not locations or locations & used:
             continue
-        used |= pages
+        used |= locations
         citations.append(record.citation)
     return tuple(citations)
