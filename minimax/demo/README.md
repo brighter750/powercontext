@@ -81,6 +81,11 @@ powercontext server run                        # 终端 A：启动 PowerContext 
 cd minimax
 python demo/run_demo.py --reset
 
+# 1') 复现本仓库留档的那一次修改（不发起网络请求，使用已留档的模型响应）
+python demo/run_demo.py --reset \
+  --response-file evidence/minimax/minimax-response-TASK-001.md \
+  --response-model "MiniMax-M3.1-Flash"
+
 # 2) 或手工分步执行
 python -m sddctx init
 python -m sddctx import
@@ -102,7 +107,7 @@ python -m pytest tests -q
 | 步骤 | 预期 |
 | --- | --- |
 | `init` | `{"initialized": true, ...}`，各表计数为 0 |
-| `import` | `specs 13 / code_symbols 21 / tests 29`，写入倒排索引约 1782 条 |
+| `import` | `specs 13 / code_symbols 21 / tests 29`，写入倒排索引约 1783 条 |
 | `search` | 返回规格条目（如 `SPEC-PRICING-102`）与测试用例命中，附词频得分 |
 | `context`（首次） | 命中规格带 `source_path:source_line` 与 `revision`；命中代码符号带 `file:line` 与签名；命中测试带覆盖的规格编号；任务进展为“尚未保存任务状态” |
 | `state save` | 返回 `scope_id` 与 `task_id`；PowerContext 中出现 Work Contract、Source 与 Atomic Memory 记录 |
@@ -132,7 +137,7 @@ PowerContext 侧的状态通过 **Scope** 隔离：换一个 `SDDCTX_POWERCONTEX
 | 验收项 | 本样例中的证据 |
 | --- | --- |
 | 能够运行 | `RUNBOOK.md` §4–§7；`evidence/logs/` |
-| MiniMax 实际参与 | `evidence/minimax/`（提示词、原始响应、模型名、用量、耗时） |
+| MiniMax 实际参与 | `evidence/minimax/`（提示词、原始响应、模型名、**响应来源如实标注**；本次为会话内模型产出，非实时 API 调用，详见 `evidence/README.md` §1） |
 | 上下文正确 | `evidence/db/context-output.md`（含来源路径与行号） |
 | 数据库实际参与 | `evidence/db/`（引擎版本、建表 DDL、真实查询与结果） |
 | 状态能够复用 | `evidence/state/`（写入回执 + 重启后读取结果） |
