@@ -22,12 +22,15 @@ several documents, and a document that repeats one page many times.
 from __future__ import annotations
 
 import asyncio
+import io
+import unicodedata
 from pathlib import Path
 
 import pytest
+from pypdf import PdfReader
 
 from powercontext.builtin.runtime import GetMemoryEntryRequest, open_builtin_runtime
-from powercontext.sources.pdf_pages import search_pdf_pages
+from powercontext.sources.pdf_pages import PDFDocumentInput, parse_pdf_document, search_pdf_pages
 
 from .test_pdf_pages import _pdf_bytes
 from .test_pdf_pages_search import _pages_of, _prepare
@@ -56,6 +59,12 @@ _REPEATED = _pdf_bytes(
         ["The company states its distinctive subject in the notes to the accounts."],
     ]
 )
+
+# Two revisions of one document that carry the same wording. They differ in
+# their bytes, so they differ in their digest and in their identity, while they
+# name the same logical page and answer a question equally well.
+_REVISION_SAME_OLD = _REVISION_OLD + b"% first copy of the same wording\n"
+_REVISION_SAME_NEW = _REVISION_OLD + b"% second copy of the same wording\n"
 
 
 async def _search(config, scope_id, tmp_path: Path, question: str, limit: int):
@@ -182,5 +191,108 @@ def test_the_group_still_answers_after_the_runtime_is_reopened(tmp_path: Path) -
 
         assert before
         assert after == before
+
+    asyncio.run(scenario())
+
+
+def _pdf_with_unicode_page(text: str) -> bytes:
+    """Build a PDF whose single page carries the given text through a ToUnicode map.
+
+    The map is what lets a test place text that latin-1 cannot carry, such as a
+    decomposed character, and what makes the reader report that exact text.
+    """
+
+    encoded = text.encode("utf-16-be").hex().upper()
+    cmap = (
+        "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n"
+        "/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n"
+        "1 begincodespacerange\n<00> <FF>\nendcodespacerange\n"
+        f"1 beginbfchar\n<41> <{encoded}>\nendbfchar\n"
+        "endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n"
+    ).encode("latin-1")
+    content = b"BT /F1 12 Tf 72 720 Td <41> Tj ET\n"
+    objects: list[bytes] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [5 0 R] /Count 1 >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 4 0 R >>",
+        b"<< /Length " + str(len(cmap)).encode("latin-1") + b" >>\nstream\n" + cmap + b"endstream",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>",
+        b"<< /Length " + str(len(content)).encode("latin-1") + b" >>\nstream\n" + content + b"endstream",
+    ]
+    document = bytearray(b"%PDF-1.4\n")
+    offsets: list[int] = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(document))
+        document += f"{number} 0 obj\n".encode("latin-1") + body + b"\nendobj\n"
+    xref_offset = len(document)
+    document += f"xref\n0 {len(objects) + 1}\n".encode("latin-1")
+    document += b"0000000000 65535 f \n"
+    for offset in offsets:
+        document += f"{offset:010d} 00000 n \n".encode("latin-1")
+    document += (f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n").encode(
+        "latin-1"
+    )
+    return bytes(document)
+
+
+def test_a_decomposed_page_is_stored_in_the_form_the_source_reports(tmp_path: Path) -> None:
+    """The stored body of a page must be the body the source reports.
+
+    The Memory normalizes every entry body to Unicode NFC before it stores it.
+    A page that carries a decomposed character would therefore be stored in
+    another form than the page reports, and a reader that compares the two
+    would see different texts for one and the same page.
+    """
+
+    async def scenario() -> None:
+        decomposed = "cafe" + chr(0x301) + " revenue"
+        content = _pdf_with_unicode_page(decomposed)
+        reader = PdfReader(io.BytesIO(content))
+        raw = (reader.pages[0].extract_text() or "").strip()
+        assert raw == decomposed
+        assert unicodedata.normalize("NFC", raw) != raw
+
+        parsed = parse_pdf_document(PDFDocumentInput(document_id="unicode", content=content))
+        assert parsed[0].text == unicodedata.normalize("NFC", decomposed)
+
+        config, scope_id, _pages = await _prepare(tmp_path, [("unicode", content)])
+        async with open_builtin_runtime(config, scheduler_path=tmp_path / "scheduler.db") as runtime:
+            memory = runtime.memory.for_scope(scope_id)
+            citations = await search_pdf_pages(memory, "revenue", limit=5)
+            assert citations
+            records = await _records(memory, citations)
+            for record in records:
+                assert record.entry.text == f"unicode\n{parsed[0].text}"
+
+    asyncio.run(scenario())
+
+
+def test_the_citation_of_a_revised_page_is_the_same_in_every_run(tmp_path: Path) -> None:
+    """Two revisions that answer equally well must not decide the citation by chance.
+
+    The Memory ranks entries that carry the same text by an identity that
+    changes between runs, so the revision that answers a question could change
+    from one run to the next. The citation of such a page is resolved by the
+    stable source identity instead, so the same input always yields the same
+    citation.
+    """
+
+    async def scenario() -> None:
+        chosen: set[tuple[str, ...]] = set()
+        for attempt in range(20):
+            directory = tmp_path / f"attempt-{attempt}"
+            directory.mkdir()
+            config, scope_id, _pages = await _prepare(
+                directory, [("revision", _REVISION_SAME_OLD), ("revision", _REVISION_SAME_NEW)]
+            )
+            async with open_builtin_runtime(config, scheduler_path=directory / "scheduler.db") as runtime:
+                memory = runtime.memory.for_scope(scope_id)
+                citations = await search_pdf_pages(memory, "contingencies notes registrant", limit=5)
+                assert len(citations) == 1
+                records = await _records(memory, citations)
+                chosen.add(tuple(sorted(reference.source_id for reference in records[0].entry.sources)))
+
+        assert len(chosen) == 1
 
     asyncio.run(scenario())

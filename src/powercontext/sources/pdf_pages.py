@@ -19,9 +19,10 @@ from __future__ import annotations
 import hashlib
 import io
 import math
+import unicodedata
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, NamedTuple, Protocol, TypeVar
 from urllib.parse import quote
 
 from pydantic import BaseModel, Field, field_validator
@@ -217,10 +218,25 @@ def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
                 document_id=value.document_id,
                 document_sha256=document_sha256,
                 page_number=number,
-                text=text.strip(),
+                text=_page_text(text),
             )
         )
     return tuple(parsed)
+
+
+def _page_text(text: str) -> str:
+    """Return the page text in the form the Memory stores it.
+
+    The Memory normalizes every entry body to Unicode NFC before it stores it,
+    while the page keeps the text the reader produced. A page that carries a
+    decomposed character would therefore be stored in another form than the page
+    reports, and a reader that compares the stored body with the page content
+    would see two different texts. Normalizing here keeps the page text and its
+    stored form one and the same, and leaves the terms of the page untouched:
+    NFC composes characters, it never adds or removes a term.
+    """
+
+    return unicodedata.normalize("NFC", text.strip())
 
 
 def _read_pages(content: bytes) -> tuple[Any, ...]:
@@ -649,6 +665,14 @@ def _logical_page_location(source_id: str) -> tuple[str, int] | None:
     return parts[1], page_number
 
 
+class _CitedPage(NamedTuple):
+    """One cited page and the identity that resolves equally good answers."""
+
+    source_id: str
+    text: str
+    citation: MemoryCitation
+
+
 async def _cite_pages(
     memory: PDFPageMemory,
     ranked: Sequence[MemoryHit],
@@ -660,6 +684,12 @@ async def _cite_pages(
     the Memory reports for that entry. A logical page is cited once: the two
     revisions of one document name the same page, and citing both would offer
     the same page twice.
+
+    Two candidates that name the same logical page and carry the same text
+    answer the question equally well, and the Memory ranks equally good entries
+    by an identity that changes between runs. The citation of such a page is
+    therefore resolved by the source identity, which is stable, so the same
+    input always yields the same citation.
     """
 
     from powercontext.builtin.artifacts.memory.errors import (
@@ -668,11 +698,14 @@ async def _cite_pages(
     )
     from powercontext.builtin.runtime.models import GetMemoryEntryRequest
 
-    citations: list[MemoryCitation] = []
-    used: set[tuple[str, int]] = set()
+    cited: list[_CitedPage] = []
+    by_location: dict[tuple[str, int], int] = {}
+    by_text: dict[str, int] = {}
     for hit in ranked:
-        if len(citations) >= limit:
-            break
+        if len(cited) >= limit and hit.text not in by_text:
+            # The page limit is reached and this candidate does not carry the
+            # text of a cited page, so it cannot change a citation.
+            continue
         citation = MemoryCitation(
             memory_ref=hit.memory_ref,
             entry_id=hit.entry_id,
@@ -689,8 +722,35 @@ async def _cite_pages(
             for location in (_logical_page_location(reference.source_id),)
             if location is not None
         }
-        if not locations or locations & used:
+        if not locations:
             continue
-        used |= locations
-        citations.append(record.citation)
-    return tuple(citations)
+        source_id = min(
+            reference.source_id for reference in record.entry.sources if reference.source_type == PDF_PAGE_SOURCE_NAME
+        )
+        cited_index = next((by_location[location] for location in locations if location in by_location), None)
+        if cited_index is not None:
+            # The page is cited already. A candidate that carries the same text
+            # answers the question equally well, and the stable source identity
+            # decides which of them is cited.
+            current = cited[cited_index]
+            if hit.text == current.text and source_id < current.source_id:
+                cited[cited_index] = _CitedPage(
+                    source_id=source_id,
+                    text=hit.text,
+                    citation=record.citation,
+                )
+            continue
+        if len(cited) >= limit:
+            continue
+        index = len(cited)
+        cited.append(
+            _CitedPage(
+                source_id=source_id,
+                text=hit.text,
+                citation=record.citation,
+            )
+        )
+        for location in locations:
+            by_location[location] = index
+        by_text.setdefault(hit.text, index)
+    return tuple(page.citation for page in cited)
