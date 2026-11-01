@@ -25,3 +25,6 @@ venv/
 # 以便把 Qoder Sites 展示站点源码纳入版本控制。
 !site/
 !site/**
+
+# qoder/site/ 的本地发布包快照，内容与仓库内源码重复，不入库以避免双份真相源。
+assets/studyflow-site.zip
