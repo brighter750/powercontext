@@ -1,0 +1,137 @@
+{
+  "scenario": "A_write_memory",
+  "title": "测试 A：写入学习记忆",
+  "purpose": "把学习者口述的学习情况写入 PowerContext，并确认可以读取回来。",
+  "executed_at": "2026-11-01T05:40:01+00:00",
+  "steps": [
+    {
+      "title": "POST /api/tutor（写入学习记忆）",
+      "at": "2026-11-01T05:40:01+00:00",
+      "request": {
+        "user_id": "student_demo_001",
+        "message": "我正在学习数据库规范化。函数依赖和候选码基本理解，但 BCNF 分解经常出错。请记住这个情况，以后复习时重点帮我练习 BCNF。"
+      },
+      "response": {
+        "status_code": 200,
+        "json": {
+          "answer": "AI 模型服务尚未配置，无法生成回答。你可以在「记忆中心」查看已经保存到 PowerContext 的学习记忆，或配置 STUDYFLOW_AI_API_BASE / STUDYFLOW_AI_API_KEY / STUDYFLOW_AI_MODEL 后重试。",
+          "user_id": "student_demo_001",
+          "scope_id": "scp_64abdjagdwpdaavfny60wy29hr",
+          "used_memory": false,
+          "memory_hits": [
+            {
+              "kind": "learning_record",
+              "key": "learning_record:2026-10-25T09:00:00+00:00_rec_54d1b09a8b18",
+              "score": 0.0164,
+              "narrative": "在「BCNF 分解」上完成了一次学习活动。本次练习结果错误。自评掌握程度 2/5。"
+            },
+            {
+              "kind": "learning_record",
+              "key": "learning_record:2026-10-28T09:00:00+00:00_rec_98bb5339b87e",
+              "score": 0.0161,
+              "narrative": "在「BCNF 分解」上完成了一次学习活动。本次练习结果错误。自评掌握程度 2/5。"
+            },
+            {
+              "kind": "learning_record",
+              "key": "learning_record:2026-10-31T09:00:00+00:00_rec_9523c66e7ae3",
+              "score": 0.0159,
+              "narrative": "在「BCNF 分解」上完成了一次学习活动。本次练习结果正确。自评掌握程度 4/5。"
+            }
+          ],
+          "memory_context": "[学习档案]\n- 昵称：小舟\n- 当前课程：数据库系统\n- 学习目标：通过期末的规范化部分，并搞懂 BCNF 分解\n- 偏好的讲解方式：先给一个具体例子，再讲定义和解题步骤\n- 重点关注的知识点：BCNF 分解,第三范式\n[知识点掌握情况]\n- BCNF 分解：掌握度 43%，练习 3 次，答对 1 次，答错 2 次\n- 第三范式：掌握度 62%，练习 1 次，答对 1 次，答错 0 次\n- 函数依赖：掌握度 69%，练习 1 次，答对 1 次，答错 0 次\n- 候选码：掌握度 69%，练习 1 次，答对 1 次，答错 0 次\n[最近的学习记录]\n- 2026-10-22T09:00:00+00:00 「候选码」 会算闭包了\n- 2026-10-25T09:00:00+00:00 「BCNF 分解」 第一次做 BCNF 分解\n- 2026-10-28T09:00:00+00:00 「BCNF 分解」 第二次，还是错在分解步骤\n- 2026-10-31T09:00:00+00:00 「BCNF 分解」 第三次做对了，比之前熟悉\n- 2026-11-01T09:00:00+00:00 「第三范式」 3NF 的判定还需要多练",
+          "saved": false,
+          "saved_actions": [],
+          "ai_configured": false,
+          "notice": "AI 未配置"
+        }
+      }
+    },
+    {
+      "title": "GET /api/memory（核对写入结果）",
+      "at": "2026-11-01T05:40:01+00:00",
+      "request": {
+        "user_id": "student_demo_001"
+      },
+      "response": {
+        "entry_count": 12,
+        "scope_id": "scp_64abdjagdwpdaavfny60wy29hr",
+        "entries": [
+          {
+            "kind": "learning_record",
+            "key": "learning_record:2026-10-31T09:00:00+00:00_rec_9523c66e7ae3",
+            "artifact_id": "art_06d84a9e797b4a9a8ed7a31501e71ff9",
+            "revision": 2
+          },
+          {
+            "kind": "learning_record",
+            "key": "learning_record:2026-10-22T09:00:00+00:00_rec_9871d7865330",
+            "artifact_id": "art_135f679bd81a402a9784016fc121e4d7",
+            "revision": 2
+          },
+          {
+            "kind": "knowledge_state",
+            "key": "knowledge_state:第三范式",
+            "artifact_id": "art_16a230d048234776b3ca7f31be107494",
+            "revision": 1
+          },
+          {
+            "kind": "knowledge_state",
+            "key": "knowledge_state:BCNF 分解",
+            "artifact_id": "art_3d57279cae3a4f5a8f34d407dc8dc12a",
+            "revision": 4
+          },
+          {
+            "kind": "learner_profile",
+            "key": "learner_profile",
+            "artifact_id": "art_6c8e74ff18f24a9a819adb910aa32e68",
+            "revision": 1
+          },
+          {
+            "kind": "learning_record",
+            "key": "learning_record:2026-10-20T09:00:00+00:00_rec_ecb5c04b2d0b",
+            "artifact_id": "art_765300739f6b44c788fe5e149b7bcfe7",
+            "revision": 2
+          },
+          {
+            "kind": "learning_record",
+            "key": "learning_record:2026-11-01T09:00:00+00:00_rec_470921c7d985",
+            "artifact_id": "art_7e337f142ae440e889d0a3772943bfd0",
+            "revision": 2
+          },
+          {
+            "kind": "knowledge_state",
+            "key": "knowledge_state:函数依赖",
+            "artifact_id": "art_c185e599c2df4b47b70d401647df73bc",
+            "revision": 6
+          },
+          {
+            "kind": "learning_record",
+            "key": "learning_record:2026-10-28T09:00:00+00:00_rec_98bb5339b87e",
+            "artifact_id": "art_cdfd9a823e0e43f8abf508c4ab619f0d",
+            "revision": 2
+          },
+          {
+            "kind": "review_plan",
+            "key": "review_plan:2026-11-01",
+            "artifact_id": "art_d1559add2c3a4edb92e8e237e0b5a297",
+            "revision": 3
+          },
+          {
+            "kind": "learning_record",
+            "key": "learning_record:2026-10-25T09:00:00+00:00_rec_54d1b09a8b18",
+            "artifact_id": "art_f6baa45558da470faebe897b27f5de33",
+            "revision": 2
+          },
+          {
+            "kind": "knowledge_state",
+            "key": "knowledge_state:候选码",
+            "artifact_id": "art_fa7804e83c974ac89bd8db1b387a8718",
+            "revision": 5
+          }
+        ]
+      }
+    }
+  ],
+  "result": "需要配置 AI 模型后复测",
+  "notes": "未配置 AI 模型服务，自然语言理解步骤无法执行；应用按设计返回明确提示，没有返回伪造结果。配置 AI 后重跑本脚本即可得到完整证据。"
+}

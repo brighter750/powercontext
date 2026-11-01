@@ -1,0 +1,33 @@
+{
+  "scenario": "E_restart_persistence",
+  "title": "测试 E：服务重启后读取",
+  "purpose": "在全新的进程与连接中重新读取同一个学习者的记忆，验证持久化。",
+  "executed_at": "2026-11-01T05:40:02+00:00",
+  "steps": [
+    {
+      "title": "GET /api/memory（重启前）",
+      "at": "2026-11-01T05:40:02+00:00",
+      "request": {
+        "user_id": "student_demo_001"
+      },
+      "response": {
+        "entry_count": 12,
+        "scope_id": "scp_64abdjagdwpdaavfny60wy29hr"
+      }
+    },
+    {
+      "title": "新进程读取（全新连接，无任何内存缓存）",
+      "at": "2026-11-01T05:40:03+00:00",
+      "request": {
+        "command": "python read_memory_once.py student_demo_001"
+      },
+      "response": {
+        "returncode": 0,
+        "stdout": "{\"user_id\": \"student_demo_001\", \"scope_id\": \"scp_64abdjagdwpdaavfny60wy29hr\", \"scope_title\": \"StudyFlow · student_demo_001\", \"record_count\": 6, \"entry_count\": 12, \"records\": [{\"topic\": \"第三范式\", \"notes\": \"3NF 的判定还需要多练\", \"artifact_id\": \"art_7e337f142ae440e889d0a3772943bfd0\", \"revision\": 1, \"practiced_at\": \"2026-11-01T09:00:00+00:00\"}, {\"topic\": \"BCNF 分解\", \"notes\": \"第三次做对了，比之前熟悉\", \"artifact_id\": \"art_06d84a9e797b4a9a8ed7a31501e71ff9\", \"revision\": 1, \"practiced_at\": \"2026-10-31T09:00:00+00:00\"}, {\"topic\": \"BCNF 分解\", \"notes\": \"第二次，还是错在分解步骤\", \"artifact_id\": \"art_cdfd9a823e0e43f8abf508c4ab619f0d\", \"revision\": 1, \"practiced_at\": \"2026-10-28T09:00:00+00:00\"}, {\"topic\": \"BCNF 分解\", \"notes\": \"第一次做 BCNF 分解\", \"artifact_id\": \"art_f6baa45558da470faebe897b27f5de33\", \"revision\": 1, \"practiced_at\": \"2026-10-25T09:00:00+00:00\"}, {\"topic\": \"候选码\", \"notes\": \"会算闭包了\", \"artifact_id\": \"art_135f679bd81a402a9784016fc121e4d7\", \"revision\": 1, \"practiced_at\": \"2026-10-22T09:00:00+00:00\"}, {\"topic\": \"函数依赖\", \"notes\": \"主属性判断已经掌握\", \"artifact_id\": \"art_765300739f6b44c788fe5e149b7bcfe7\", \"revision\": 1, \"practiced_at\": \"2026-10-20T09:00:00+00:00\"}], \"knowledge_states\": [{\"topic\": \"BCNF 分解\", \"mastery\": 0.4276, \"attempts\": 3}, {\"topic\": \"第三范式\", \"mastery\": 0.6167, \"attempts\": 1}, {\"topic\": \"函数依赖\", \"mastery\": 0.6917, \"attempts\": 1}, {\"topic\": \"候选码\", \"mastery\": 0.6917, \"attempts\": 1}]}",
+        "stderr": ""
+      }
+    }
+  ],
+  "result": "通过",
+  "notes": "新进程读到 scope_id=scp_64abdjagdwpdaavfny60wy29hr、6 条学习记录，记忆在重启后依然存在。"
+}

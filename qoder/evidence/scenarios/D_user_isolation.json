@@ -1,0 +1,47 @@
+{
+  "scenario": "D_user_isolation",
+  "title": "测试 D：用户隔离",
+  "purpose": "验证不同学习者 ID 的记忆在 PowerContext 中完全隔离。",
+  "executed_at": "2026-11-01T05:40:02+00:00",
+  "steps": [
+    {
+      "title": "POST /api/tutor（用户 B：student_demo_992795_b）",
+      "at": "2026-11-01T05:40:02+00:00",
+      "request": {
+        "user_id": "student_demo_992795_b",
+        "message": "我最近正在学习操作系统。"
+      },
+      "response": {
+        "status_code": 200,
+        "json": {
+          "answer": "AI 模型服务尚未配置，无法生成回答。你可以在「记忆中心」查看已经保存到 PowerContext 的学习记忆，或配置 STUDYFLOW_AI_API_BASE / STUDYFLOW_AI_API_KEY / STUDYFLOW_AI_MODEL 后重试。",
+          "user_id": "student_demo_992795_b",
+          "scope_id": "scp_4gckennc58dfgae6jmgsc9a4zx",
+          "used_memory": false,
+          "memory_hits": [],
+          "memory_context": "",
+          "saved": false,
+          "saved_actions": [],
+          "ai_configured": false,
+          "notice": "AI 未配置"
+        }
+      }
+    },
+    {
+      "title": "GET /api/memory（对比两个 Scope）",
+      "at": "2026-11-01T05:40:02+00:00",
+      "request": {
+        "user_id": "student_demo_992795_b"
+      },
+      "response": {
+        "scope_a": "scp_64abdjagdwpdaavfny60wy29hr",
+        "scope_b": "scp_4gckennc58dfgae6jmgsc9a4zx",
+        "user_b_entry_count": 0,
+        "user_b_records": [],
+        "user_b_memory_context_leaks_user_a": false
+      }
+    }
+  ],
+  "result": "通过",
+  "notes": "两个学习者对应不同的 PowerContext Scope（scp_64abdjagdwpdaavfny60wy29hr vs scp_4gckennc58dfgae6jmgsc9a4zx），且用户 B 读不到用户 A 的任何记录。隔离由 PowerContext 的 Scope 边界保证，不是前端隐藏。"
+}

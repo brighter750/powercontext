@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StudyFlow · 具有长期记忆的 AI 学习教练</title>
+<meta name="description" content="StudyFlow 是 OceanBase 大赛 Qoder 赛道参赛作品，基于 PowerContext 构建的长期记忆 AI 学习教练。学习记录、掌握度、薄弱点与复习计划全部持久化在 PowerContext 中，跨会话、跨进程存在。" />
+<meta name="keywords" content="StudyFlow, PowerContext, OceanBase, Qoder, AI 学习教练, 长期记忆" />
+<meta property="og:title" content="StudyFlow · 具有长期记忆的 AI 学习教练" />
+<meta property="og:description" content="记忆不是装饰品：学习档案、练习历史、薄弱判定与复习计划全部存放在 PowerContext 中，跨会话持续存在。" />
+<meta property="og:type" content="website" />
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="assets/css/site.css" />
+</head>
+<body>
+
+<a class="skip-link" href="#main">跳到主要内容</a>
+
+<header class="site-header" id="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="StudyFlow 首页">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26">
+          <path d="M6 6h9a5 5 0 0 1 5 5v15a4 4 0 0 0-4-4H6z" fill="currentColor" opacity=".45"/>
+          <path d="M26 6h-9a5 5 0 0 0-5 5v15a4 4 0 0 1 4-4h10z" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>StudyFlow</strong>
+        <small>长期记忆 AI 学习教练</small>
+      </span>
+    </a>
+
+    <nav class="site-nav" id="site-nav" aria-label="主导航">
+      <a href="#problem">解决的问题</a>
+      <a href="#features">功能</a>
+      <a href="#memory">记忆核心</a>
+      <a href="#evidence">真实证据</a>
+      <a href="#ui">界面</a>
+      <a href="#verify">验收</a>
+      <a href="#start">快速开始</a>
+    </nav>
+
+    <div class="header-actions">
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色主题" title="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></g></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 13.6A8.2 8.2 0 0 1 10.4 4a8.4 8.4 0 1 0 9.6 9.6z" fill="currentColor"/></svg>
+      </button>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/brighter750/powercontext/tree/2026-competition-ecosystem/qoder" target="_blank" rel="noopener">代码仓库</a>
+      <button class="icon-btn nav-toggle" id="nav-toggle" type="button" aria-label="打开导航" aria-expanded="false" aria-controls="site-nav">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></g></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-inner">
+    <p class="eyebrow"><span class="dot"></span>OceanBase 大赛 · Qoder 赛道参赛作品</p>
+    <h1 class="hero-title">
+      具有<span class="grad">长期记忆</span>的<br />AI 学习教练
+    </h1>
+    <p class="hero-lede">
+      StudyFlow 把学习者的课程、薄弱知识点、历史练习、自评与复习进度
+      全部持久化在 <a href="https://github.com/oceanbase/powercontext" target="_blank" rel="noopener"><strong>PowerContext</strong></a>
+      中。关掉应用再打开，同一个学习者 ID 不需要重新介绍自己——
+      系统会从 PowerContext 读回长期记忆，并解释“为什么建议复习这个”。
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#start">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+        本地跑起来
+      </a>
+      <a class="btn btn-ghost" href="#memory">看 PowerContext 怎么用</a>
+    </div>
+
+    <ul class="stat-row">
+      <li><b>7</b><span>功能模块</span></li>
+      <li><b>50</b><span>自动化测试全通过</span></li>
+      <li><b>208</b><span>真实 PowerContext 操作</span></li>
+      <li><b>12</b><span>真实记忆条目</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= PROBLEM ================= -->
+<section class="section" id="problem">
+  <div class="wrap">
+    <p class="section-kicker">解决的问题</p>
+    <h2 class="section-title">大多数 AI 学习工具<span class="muted">只是会话内的</span></h2>
+    <p class="section-lede">
+      学习记录天然是跨会话的，但聊天窗口天然是会话内的。研究生的真实痛点不是“AI 答得不好”，
+      而是<b>每次都要重新讲一遍自己是谁、哪里弱、练过什么</b>。
+    </p>
+
+    <div class="compare">
+      <div class="compare-col compare-col--muted">
+        <h3>普通 AI 聊天工具</h3>
+        <ul class="tick-list">
+          <li><span class="x">✕</span> 关掉窗口，记忆归零</li>
+          <li><span class="x">✕</span> 复习建议没有依据，像随机抽查</li>
+          <li><span class="x">✕</span> 答错一次就断定“你不会”</li>
+          <li><span class="x">✕</span> 只能改一个学习者 ID，隔离靠前端隐藏</li>
+        </ul>
+      </div>
+      <div class="compare-col compare-col--brand">
+        <h3>StudyFlow</h3>
+        <ul class="tick-list">
+          <li><span class="v">✓</span> 学习记录写进 PowerContext，进程重启仍在</li>
+          <li><span class="v">✓</span> 每条建议引用真实历史（“练习 3 次、答错 2 次”）</li>
+          <li><span class="v">✓</span> 薄弱判定需多次证据，单次答错最多判为中等</li>
+          <li><span class="v">✓</span> 一个学习者 = 一个 Scope，服务端边界隔离</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>一条刻意的规则：</strong>
+      一次答错不会让系统断定“你长期不会这个知识点”。薄弱程度需要多次练习、自评与历史共同支撑；
+      答对一次且自评良好的知识点<b>不会</b>被列为薄弱点。这条规则有专门的单元测试保护。
+    </div>
+  </div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section class="section section-alt" id="features">
+  <div class="wrap">
+    <p class="section-kicker">核心功能</p>
+    <h2 class="section-title">七个模块，<span class="muted">一条记忆主线</span></h2>
+    <p class="section-lede">
+      学习记录、薄弱分析、复习计划、记忆中心四个模块<b>完全不依赖大模型</b>——
+      它们的每一个结论都能追溯到 PowerContext 里真实存在的条目。
+    </p>
+
+    <div class="grid grid-3">
+      <article class="card">
+        <div class="card-ico" aria-hidden="true">📊</div>
+        <h3>学习概览 Dashboard</h3>
+        <p>当前课程、学习目标、活动数、薄弱知识点、最近进展与今日复习建议，一屏读完。</p>
+        <span class="tag tag-read">PowerContext 读</span>
+      </article>
+
+      <article class="card">
+        <div class="card-ico" aria-hidden="true">💬</div>
+        <h3>AI 助手 AI Tutor</h3>
+        <p>自然语言提问或口述学习情况。回答前先召回记忆，回答后把新信息写回记忆。</p>
+        <span class="tag tag-rw">PowerContext 读 + 写</span>
+      </article>
+
+      <article class="card">
+        <div class="card-ico" aria-hidden="true">📝</div>
+        <h3>学习记录 Records</h3>
+        <p>提交一次练习：题目、答案、对错、自评、笔记、卡点。写完立即能看到掌握度变化。</p>
+        <span class="tag tag-write">PowerContext 写</span>
+      </article>
+
+      <article class="card">
+        <div class="card-ico" aria-hidden="true">🔍</div>
+        <h3>薄弱分析 Weakness</h3>
+        <p>每个知识点的掌握度、错误次数、证据明细与<b>判定原因</b>，逐列摊开给你看。</p>
+        <span class="tag tag-read">PowerContext 读</span>
+      </article>
+
+      <article class="card">
+        <div class="card-ico" aria-hidden="true">🗓️</div>
+        <h3>复习计划 Review Plan</h3>
+        <p>今日复习优先级、每项推荐原因，以及针对薄弱点生成的练习题。</p>
+        <span class="tag tag-rw">PowerContext 读 + AI</span>
+      </article>
+
+      <article class="card card--accent">
+        <div class="card-ico" aria-hidden="true">🧠</div>
+        <h3>记忆中心 Memory Center</h3>
+        <p>逐条展示 PowerContext 中真实存在的记忆条目、<code>artifact_id</code> 与修订号——把“用了 PowerContext”变成可逐条核对的事实。</p>
+        <span class="tag tag-read">PowerContext 读</span>
+      </article>
+
+      <article class="card">
+        <div class="card-ico" aria-hidden="true">⚙️</div>
+        <h3>设置 Settings</h3>
+        <p>编辑学习档案、切换学习者 ID，并查看 PowerContext 与 AI 服务的真实连接状态。</p>
+        <span class="tag tag-read">PowerContext 读</span>
+      </article>
+
+      <article class="card card--plain">
+        <h3>技术取舍</h3>
+        <p>前端原生 HTML + CSS + ES Module，<b>零构建步骤</b>：评审克隆下来启动后端即可打开，不需要 <code>npm install</code>。</p>
+        <span class="tag tag-neutral">可插拔 AI</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MEMORY CORE ================= -->
+<section class="section" id="memory">
+  <div class="wrap">
+    <p class="section-kicker">PowerContext 在项目中的实际作用</p>
+    <h2 class="section-title">不是装饰性依赖，<span class="muted">是产品成立的前提</span></h2>
+    <p class="section-lede">
+      没有持久化记忆，StudyFlow 就只是一个换皮聊天框。PowerContext 在这里承担四件具体的、可核对的职责。
+    </p>
+
+    <div class="grid grid-2 role-grid">
+      <article class="role">
+        <span class="role-num">01</span>
+        <h3>长期记忆的存储</h3>
+        <p>学习档案、知识点掌握状态、学习记录、薄弱点、复习计划，全部存为 PowerContext Atomic Memory 条目（<code>art_…</code> artifact）。</p>
+        <code class="snippet">POST /v1/memory/remember</code>
+      </article>
+      <article class="role">
+        <span class="role-num">02</span>
+        <h3>跨会话读取</h3>
+        <p>新会话通过学习者 ID 解析出同一个 Scope 并读回历史。进程重启、内存清空都不影响。</p>
+        <code class="snippet">POST /v1/memory/entries/list</code>
+      </article>
+      <article class="role">
+        <span class="role-num">03</span>
+        <h3>记忆更新</h3>
+        <p>新一次练习不是追加重复记忆，而是<b>原地修订</b>原有条目，修订号递增、历史版本保留。</p>
+        <code class="snippet">PUT /v1/scopes/{scope_id}/artifacts/atomic-memory/{artifact_id}<br />If-Match: "revision:N"</code>
+      </article>
+      <article class="role">
+        <span class="role-num">04</span>
+        <h3>用户隔离</h3>
+        <p>每个学习者 ID 在 PowerContext 中对应一个独立 Scope，并通过 scope binding 持久化映射。隔离由服务端 Scope 边界保证。</p>
+        <code class="snippet">PUT /v1/scope-bindings</code>
+      </article>
+    </div>
+
+    <h3 class="sub-title">记忆生命周期</h3>
+    <p class="sub-lede">同一个知识点的状态在 PowerContext 里被反复修订，而不是堆出一堆重复条目：</p>
+
+    <div class="flow" role="list" aria-label="记忆生命周期流程">
+      <div class="flow-step" role="listitem">
+        <span class="flow-ico">1</span>
+        <h4>解析 Scope</h4>
+        <p>用学习者 ID 解析 scope binding；没有则按 <code>external_references</code> 兜底查找，仍无则创建。</p>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-step" role="listitem">
+        <span class="flow-ico">2</span>
+        <h4>写入或修订</h4>
+        <p>按记忆信封里的 <code>key</code> 定位条目：找到则 <code>PUT</code> 修订，找不到才 <code>remember</code> 新建。</p>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-step" role="listitem">
+        <span class="flow-ico">3</span>
+        <h4>召回与组装</h4>
+        <p>用 <code>entries/list</code> + <code>memory/search</code> 拉回原始条目，组装成给模型或给人看的上下文。</p>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-step" role="listitem">
+        <span class="flow-ico">4</span>
+        <h4>派生投影</h4>
+        <p>掌握度、薄弱点、复习计划都是投影，随时可由事件日志重建，且不改写历史记录。</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-title">PowerContext 中的记忆条目（真实 artifact 与修订号）</span>
+        <button class="copy-btn" type="button" data-copy-target="memory-sample">复制</button>
+      </div>
+      <pre id="memory-sample"><code>{
+  "scope_id": "scp_64abdjagdwpdaavfny60wy29hr",
+  "learner_id": "student_demo_001",
+  "entry_count": 12,
+  "learning_records": 6,
+  "entries": [
+    { "kind": "learner_profile",    "key": "learner_profile",
+      "artifact_id": "art_6c8e74ff18f24a9a819adb910aa32e68", "revision": 1 },
+    { "kind": "knowledge_state",    "key": "knowledge_state:BCNF 分解",
+      "artifact_id": "art_3d57279cae3a4f5a8f34d407dc8dc12a", "revision": 4 },
+    { "kind": "knowledge_state",    "key": "knowledge_state:第三范式",
+      "artifact_id": "art_16a230d048234776b3ca7f31be107494", "revision": 1 },
+    { "kind": "learning_record",    "key": "learning_record:2026-10-31…_rec_9523c66e7ae3",
+      "artifact_id": "art_06d84a9e797b4a9a8ed7a31501e71ff9", "revision": 2 },
+    { "kind": "review_plan",        "key": "review_plan:2026-11-01",
+      "artifact_id": "art_d1559add2c3a4edb92e8e237e0b5a297", "revision": 3 }
+  ]
+}</code></pre>
+    </div>
+    <p class="fine-print">
+      以上 artifact ID、修订号、scope ID 均来自 <code>qoder/evidence/scenarios/A_write_memory.json</code> 的真实响应，
+      可与 PowerContext Server 中的条目逐一核对。
+    </p>
+  </div>
+</section>
+
+<!-- ================= EVIDENCE ================= -->
+<section class="section section-alt" id="evidence">
+  <div class="wrap">
+    <p class="section-kicker">可核对的证据</p>
+    <h2 class="section-title">不是声称，<span class="muted">是能对上的记录</span></h2>
+    <p class="section-lede">
+      项目提供了一整套可复现的证据链：每次 PowerContext 调用的 request_id、状态码、耗时都被导出成 JSON，
+      验收样例 A–E 的请求与响应原文也全部保留。
+    </p>
+
+    <div class="grid grid-3 metric-grid">
+      <div class="metric">
+        <span class="metric-val">208</span>
+        <span class="metric-label">导出的真实 PowerContext 操作</span>
+      </div>
+      <div class="metric">
+        <span class="metric-val">72</span>
+        <span class="metric-label">list_memory_entries 调用</span>
+      </div>
+      <div class="metric">
+        <span class="metric-val">40</span>
+        <span class="metric-label">scope binding 解析 / 写入</span>
+      </div>
+      <div class="metric">
+        <span class="metric-val">20</span>
+        <span class="metric-label">artifact 原地修订（replace）</span>
+      </div>
+      <div class="metric">
+        <span class="metric-val">12</span>
+        <span class="metric-label">remember_memory 写入</span>
+      </div>
+      <div class="metric">
+        <span class="metric-val">401</span>
+        <span class="metric-label">无令牌访问被拒（enforced 模式）</span>
+      </div>
+    </div>
+
+    <h3 class="sub-title">跨会话与重启持久化（验收样例 E · 真实输出）</h3>
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-title">python qoder/scripts/read_memory_once.py student_demo_001</span>
+        <button class="copy-btn" type="button" data-copy-target="restart-sample">复制</button>
+      </div>
+      <pre id="restart-sample"><code>{
+  "user_id": "student_demo_001",
+  "scope_id": "scp_64abdjagdwpdaavfny60wy29hr",
+  "scope_title": "StudyFlow · student_demo_001",
+  "record_count": 6,
+  "entry_count": 12,
+  "knowledge_states": [
+    { "topic": "BCNF 分解", "mastery": 0.4276, "attempts": 3 },
+    { "topic": "第三范式",   "mastery": 0.6167, "attempts": 1 },
+    { "topic": "函数依赖",   "mastery": 0.6917, "attempts": 1 },
+    { "topic": "候选码",     "mastery": 0.6917, "attempts": 1 }
+  ]
+}</code></pre>
+    </div>
+    <p class="fine-print">
+      该命令在<b>全新进程、全新连接、无任何内存缓存</b>的情况下运行，读回同一个 scope 与 12 条记忆条目。
+    </p>
+
+    <h3 class="sub-title">用户隔离（验收样例 D · 真实输出）</h3>
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-title">GET /api/memory · 两个学习者对比</span>
+        <button class="copy-btn" type="button" data-copy-target="isolation-sample">复制</button>
+      </div>
+      <pre id="isolation-sample"><code>{
+  "scope_a": "scp_64abdjagdwpdaavfny60wy29hr",
+  "scope_b": "scp_4gckennc58dfgae6jmgsc9a4zx",
+  "user_b_entry_count": 0,
+  "user_b_records": [],
+  "user_b_memory_context_leaks_user_a": false
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ================= UI ================= -->
+<section class="section" id="ui">
+  <div class="wrap">
+    <p class="section-kicker">界面</p>
+    <h2 class="section-title">真实运行截图</h2>
+    <p class="section-lede">以下截图全部来自本机实际运行的应用，无任何修饰。</p>
+
+    <div class="shots">
+      <figure class="shot" data-shot="assets/img/01-dashboard.png" data-caption="学习概览 Dashboard：课程、目标、薄弱点与今日复习建议">
+        <img src="assets/img/01-dashboard.png" alt="StudyFlow 学习概览页面截图" loading="lazy" width="584" height="1000" />
+        <figcaption><b>学习概览 Dashboard</b><span>课程、目标、薄弱点与今日复习建议</span></figcaption>
+      </figure>
+      <figure class="shot" data-shot="assets/img/02-learning-records.png" data-caption="学习记录：提交一次练习并写入 PowerContext">
+        <img src="assets/img/02-learning-records.png" alt="StudyFlow 学习记录页面截图" loading="lazy" width="584" height="1000" />
+        <figcaption><b>学习记录 Records</b><span>提交一次练习并写入 PowerContext</span></figcaption>
+      </figure>
+      <figure class="shot" data-shot="assets/img/03-weakness-analysis.png" data-caption="薄弱分析：掌握度、错误次数与判定原因">
+        <img src="assets/img/03-weakness-analysis.png" alt="StudyFlow 薄弱分析页面截图" loading="lazy" width="584" height="1000" />
+        <figcaption><b>薄弱分析 Weakness</b><span>掌握度、错误次数与判定原因</span></figcaption>
+      </figure>
+      <figure class="shot" data-shot="assets/img/04-memory-center.png" data-caption="记忆中心：逐条展示 artifact_id 与修订号">
+        <img src="assets/img/04-memory-center.png" alt="StudyFlow 记忆中心页面截图" loading="lazy" width="584" height="1000" />
+        <figcaption><b>记忆中心 Memory Center</b><span>逐条展示 artifact_id 与修订号</span></figcaption>
+      </figure>
+      <figure class="shot" data-shot="assets/img/05-review-plan.png" data-caption="复习计划：优先级与推荐原因">
+        <img src="assets/img/05-review-plan.png" alt="StudyFlow 复习计划页面截图" loading="lazy" width="584" height="1000" />
+        <figcaption><b>复习计划 Review Plan</b><span>优先级与推荐原因</span></figcaption>
+      </figure>
+      <figure class="shot" data-shot="assets/img/06-ai-tutor.png" data-caption="AI 助手：召回记忆后回答，并写回新信息">
+        <img src="assets/img/06-ai-tutor.png" alt="StudyFlow AI 助手页面截图" loading="lazy" width="584" height="1000" />
+        <figcaption><b>AI 助手 AI Tutor</b><span>召回记忆后回答，并写回新信息</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= VERIFY ================= -->
+<section class="section section-alt" id="verify">
+  <div class="wrap">
+    <p class="section-kicker">验收样例</p>
+    <h2 class="section-title">A–E 全部执行过，<span class="muted">结果如实标注</span></h2>
+    <p class="section-lede">
+      脚本 <code>qoder/scripts/verify_scenarios.py</code> 会真实调用运行中的后端与 PowerContext，
+      并把请求与响应原文写入 <code>qoder/evidence/scenarios/</code>。没有模型凭据时，
+      系统返回明确提示而不是伪造结果——所以样例状态也照实写。
+    </p>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>样例</th>
+            <th>验证内容</th>
+            <th>实际结果</th>
+            <th>证据</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>A</b></td>
+            <td>写入学习记忆并读回</td>
+            <td><span class="badge badge-warn">需配置 AI 后复测</span></td>
+            <td><code>A_write_memory.json</code></td>
+          </tr>
+          <tr>
+            <td><b>B</b></td>
+            <td>新会话读取长期记忆</td>
+            <td><span class="badge badge-warn">需配置 AI 后复测</span></td>
+            <td><code>B_cross_session_read.json</code></td>
+          </tr>
+          <tr>
+            <td><b>C</b></td>
+            <td>更新学习进度</td>
+            <td><span class="badge badge-warn">需配置 AI 后复测</span></td>
+            <td><code>C_update_progress.json</code></td>
+          </tr>
+          <tr>
+            <td><b>D</b></td>
+            <td>用户隔离</td>
+            <td><span class="badge badge-ok">通过</span></td>
+            <td><code>D_user_isolation.json</code></td>
+          </tr>
+          <tr>
+            <td><b>E</b></td>
+            <td>服务重启后读取</td>
+            <td><span class="badge badge-ok">通过</span></td>
+            <td><code>E_restart_persistence.json</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout--info">
+      <strong>为什么 A/B/C 不是“通过”？</strong>
+      这三个样例包含“用自然语言描述练习情况并被解析”这类步骤，需要真实可用的模型服务。
+      当前环境没有可用凭据，因此应用按赛题要求返回明确提示，样例状态如实标注为待复测。
+      补上 <code>STUDYFLOW_AI_API_BASE / _API_KEY / _MODEL</code> 后重跑同一个脚本即可补齐证据，无需改代码。
+    </div>
+
+    <h3 class="sub-title">测试分层</h3>
+    <div class="grid grid-2">
+      <div class="card card--flat">
+        <h3>单元测试 · 14 项</h3>
+        <p>掌握度计算、薄弱判定、记忆信封解析、AI JSON 解码等纯领域逻辑。</p>
+      </div>
+      <div class="card card--flat">
+        <h3>Mock 测试 · 16 项</h3>
+        <p>用内存替身驱动真实 Service 与 Repository，验证 Scope 生命周期与“创建或修订”语义。</p>
+      </div>
+      <div class="card card--flat">
+        <h3>真实集成测试 · 11 项</h3>
+        <p>直连真实 PowerContext Server：写入、读取、修订、检索、隔离、重启后持久化。</p>
+      </div>
+      <div class="card card--flat">
+        <h3>API 集成测试 · 9 项</h3>
+        <p>通过 HTTP 驱动运行中的后端，验证端到端行为。服务器不可用时自动跳过，不伪装通过。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ARCHITECTURE ================= -->
+<section class="section" id="architecture">
+  <div class="wrap">
+    <p class="section-kicker">架构</p>
+    <h2 class="section-title">分层清晰，<span class="muted">职责不串味</span></h2>
+
+    <div class="arch">
+      <div class="arch-row">
+        <div class="arch-layer">
+          <span class="arch-tag">前端</span>
+          <p>原生 HTML / CSS / ES Module<br /><span>7 个页面，零构建步骤</span></p>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">↓</div>
+        <div class="arch-layer">
+          <span class="arch-tag">HTTP API</span>
+          <p>FastAPI · 10 个路由<br /><span>统一异常映射</span></p>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">↓</div>
+        <div class="arch-layer arch-layer--brand">
+          <span class="arch-tag">领域服务</span>
+          <p>learning_service · ai_service<br /><span>掌握度 / 薄弱点 / 复习计划</span></p>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">↓</div>
+        <div class="arch-layer arch-layer--brand">
+          <span class="arch-tag">记忆仓储</span>
+          <p>repository<br /><span>Scope 生命周期 + 创建或修订</span></p>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">↓</div>
+        <div class="arch-layer arch-layer--power">
+          <span class="arch-tag">PowerContext</span>
+          <p>client.py — 唯一传输层<br /><span>Bearer 鉴权 · 超时 · 指数退避重试</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card card--flat">
+        <h3>权威记录 vs 派生投影</h3>
+        <p>学习记录是<b>权威事件日志</b>，掌握度与薄弱点是<b>派生投影</b>。
+           投影里保留 <code>record_ids</code>，重建投影不会改写历史——今天的理解不会被强行盖回昨天。</p>
+      </div>
+      <div class="card card--flat">
+        <h3>AI 可插拔、可缺席</h3>
+        <p>模型未配置时，接口返回清晰提示而<b>不是伪造结果</b>。
+           学习记录、薄弱分析、复习计划、记忆中心四项完全不依赖模型。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= START ================= -->
+<section class="section section-alt" id="start">
+  <div class="wrap">
+    <p class="section-kicker">快速开始</p>
+    <h2 class="section-title">四步跑起来</h2>
+    <p class="section-lede">在仓库根目录执行；本项目位于 <code>qoder/</code> 目录。</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-n">1</span>
+        <div class="step-body">
+          <h3>安装依赖</h3>
+          <div class="code-block code-block--sm">
+            <div class="code-head">
+              <span class="code-title">bash</span>
+              <button class="copy-btn" type="button" data-copy-target="cmd-install">复制</button>
+            </div>
+            <pre id="cmd-install"><code>uv sync</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">2</span>
+        <div class="step-body">
+          <h3>准备环境变量</h3>
+          <div class="code-block code-block--sm">
+            <div class="code-head">
+              <span class="code-title">bash</span>
+              <button class="copy-btn" type="button" data-copy-target="cmd-env">复制</button>
+            </div>
+            <pre id="cmd-env"><code>cp qoder/.env.example qoder/.env
+# 编辑 qoder/.env，确认 PowerContext 地址与令牌</code></pre>
+          </div>
+          <p class="fine-print"><code>qoder/.env</code> 已被 <code>.gitignore</code> 忽略，真实密钥不会进入仓库。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">3</span>
+        <div class="step-body">
+          <h3>启动 PowerContext（enforced 鉴权）</h3>
+          <div class="code-block code-block--sm">
+            <div class="code-head">
+              <span class="code-title">powershell</span>
+              <button class="copy-btn" type="button" data-copy-target="cmd-pc">复制</button>
+            </div>
+            <pre id="cmd-pc"><code>powershell -NoProfile -File qoder/scripts/start_powercontext.ps1 -Token "your-token" -OpenDashboard</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">4</span>
+        <div class="step-body">
+          <h3>启动 StudyFlow 后端并写入演示数据</h3>
+          <div class="code-block code-block--sm">
+            <div class="code-head">
+              <span class="code-title">powershell / bash</span>
+              <button class="copy-btn" type="button" data-copy-target="cmd-run">复制</button>
+            </div>
+            <pre id="cmd-run"><code>powershell -NoProfile -File qoder/scripts/run_backend.ps1
+python qoder/scripts/seed_demo.py</code></pre>
+          </div>
+          <p class="fine-print">随后打开 <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a>，API 文档在 <code>/docs</code>。</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">跑一遍验收与测试</h3>
+    <div class="code-block">
+      <div class="code-head">
+        <span class="code-title">bash</span>
+        <button class="copy-btn" type="button" data-copy-target="cmd-verify">复制</button>
+      </div>
+      <pre id="cmd-verify"><code># 执行验收样例 A–E，产出 qoder/evidence/scenarios/*.json
+python qoder/scripts/verify_scenarios.py
+
+# 全新进程读回记忆（验收样例 E）
+python qoder/scripts/read_memory_once.py student_demo_001
+
+# 导出 PowerContext 操作记录作为证据
+python qoder/scripts/export_server_log.py
+
+# 测试：单元 / Mock / 真实集成（50 项）
+cd qoder && pytest tests -q</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HONEST ================= -->
+<section class="section" id="honest">
+  <div class="wrap">
+    <p class="section-kicker">如实说明</p>
+    <h2 class="section-title">哪些还没做完</h2>
+
+    <div class="grid grid-2 honest-grid">
+      <div class="card card--warn">
+        <h3>AI 模型未配置</h3>
+        <p>当前环境没有可用的模型凭据。AI 助手与自动出题会返回明确提示，
+           <b>不会返回伪造的 AI 结果</b>。四个不依赖模型的模块全部可用。</p>
+        <p class="fine-print">配置 <code>STUDYFLOW_AI_API_BASE / _API_KEY / _MODEL</code> 后重跑验收脚本即可补齐 A/B/C 证据。</p>
+      </div>
+      <div class="card card--warn">
+        <h3>Qoder 开发记录待补</h3>
+        <p>本次开发的主要工具是 MiniMax Code (MCode)，不是 Qoder。
+           开发日志已如实标注，<b>未伪造任何 Qoder 对话截图、录屏或账号 UID</b>。</p>
+        <p class="fine-print">赛题要求的主要开发工作需由参赛者在 Qoder 中完成并补录真实记录。</p>
+      </div>
+      <div class="card card--warn">
+        <h3>发布地址待回填</h3>
+        <p>本站源码即 Qoder Sites 的发布内容。站点发布需使用参赛者本人的
+           Qoder 个人账号设置“任何人都可访问”，发布后把网址填回
+           <code>qoder/README.md</code> 与本文件。</p>
+        <p class="fine-print">当前状态：<code>待发布</code>。</p>
+      </div>
+      <div class="card card--ok">
+        <h3>已完成且可复核</h3>
+        <p>真实 PowerContext 读写/修订/检索/隔离/重启持久化全部跑通，
+           208 条服务端操作记录已导出，50 项自动化测试全通过，
+           六张界面截图来自真实运行。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="22" height="22">
+          <path d="M6 6h9a5 5 0 0 1 5 5v15a4 4 0 0 0-4-4H6z" fill="currentColor" opacity=".45"/>
+          <path d="M26 6h-9a5 5 0 0 0-5 5v15a4 4 0 0 1 4-4h10z" fill="currentColor"/>
+        </svg>
+      </span>
+      <div>
+        <strong>StudyFlow</strong>
+        <p>具有长期记忆的 AI 学习教练 · PowerContext 驱动</p>
+      </div>
+    </div>
+    <nav class="footer-links" aria-label="页脚导航">
+      <a href="#memory">记忆核心</a>
+      <a href="#evidence">证据</a>
+      <a href="#verify">验收样例</a>
+      <a href="#start">快速开始</a>
+      <a href="https://github.com/oceanbase/powercontext" target="_blank" rel="noopener">PowerContext</a>
+      <a href="https://github.com/brighter750/powercontext/tree/2026-competition-ecosystem/qoder" target="_blank" rel="noopener">代码仓库</a>
+    </nav>
+  </div>
+  <div class="wrap footer-note">
+    <p>OceanBase 大赛 · Qoder 赛道参赛作品 · Apache-2.0</p>
+    <p>PowerContext 为 OceanBase 官方开源项目，通过 HTTP API 接入，未修改其源码。本项目不使用 seekDB。</p>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lightbox-close" type="button" aria-label="关闭">×</button>
+  <img id="lightbox-img" src="" alt="" />
+  <p class="lightbox-caption" id="lightbox-caption"></p>
+</div>
+
+<script src="assets/js/site.js" defer></script>
+</body>
+</html>

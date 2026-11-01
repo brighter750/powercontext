@@ -1,0 +1,27 @@
+# 本机环境变量，含真实凭据，禁止提交
+.env
+.env.*
+!.env.example
+
+# 运行期产物
+.artifacts/
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.venv/
+venv/
+
+# 仓库根目录 .gitignore 把 "site/" 列为生成物输出，会连带忽略 qoder/site/。
+# 子目录的 .gitignore 规则优先级更高，这里显式反选，
+# 以便把 Qoder Sites 展示站点源码纳入版本控制。
+!site/
+!site/**
