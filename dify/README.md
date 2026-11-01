@@ -77,7 +77,7 @@ dify/
 | 组件 | 版本 | 说明 |
 | --- | --- | --- |
 | Dify | 1.x（DSL `version: 0.1.5`） | 自建（docker compose）或 Dify 云版均可 |
-| PowerContext Server | HTTP API 契约 v1.4 | 独立部署，监听 `http://127.0.0.1:8000`（默认） |
+| PowerContext Server | 1.4.1（HTTP API 契约 v1.4） | 独立部署，监听 `http://127.0.0.1:8000`（默认） |
 | Python | 3.11+ | 仅运行 `scripts/` 下的辅助脚本时需要；Dify 与 PowerContext 本身不依赖本仓库的 Python 环境 |
 | 模型服务 | 任意 OpenAI 兼容服务 | 示例：MiniMax `https://api.minimaxi.com/v1`，模型 `MiniMax-M2.7` |
 
@@ -89,12 +89,14 @@ dify/
 
 ### 5.1 启动 PowerContext Server
 
-方式一：用 PyPI 版（独立于本仓库）
+方式一：安装已发布版本（推荐）
 
 ```bash
-pip install "powercontext[server]"
+uv tool install --force "powercontext[cli,server]==1.4.1"
 powercontext server run          # 默认 http://127.0.0.1:8000，本地 SQLite 持久化
 ```
+
+> `powercontext[cli,server]` 不含 seekDB 扩展（那是可选的 `[seekdb]` extra），本方案也不需要它。
 
 方式二：用本仓库源码（开发调试时更方便）
 
@@ -159,6 +161,9 @@ Dify 和 PowerContext 都在同一台宿主机、Windows/macOS/Linux 都适用�
 如果 PowerContext 也跑在容器里，把地址换成容器服务名（例如 `http://powercontext:8000`）并确保两个容器在同一网络。
 
 > 鉴权关闭时，PowerContext 会忽略任何 `Authorization` 头，所以 `POWERCONTEXT_TOKEN=disabled` 可以直接用。
+>
+> 如果要给 Server 开鉴权，在**服务端**设置 `POWERCONTEXT_SERVER_AUTH_TOKEN`（同一个值填进 Dify 的
+> `POWERCONTEXT_TOKEN`），客户端就会带上 `Authorization: Bearer <token>`。
 
 ### 5.5 跑起来
 
