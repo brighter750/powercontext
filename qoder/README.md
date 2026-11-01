@@ -256,7 +256,7 @@ qoder/
 
 ## 项目链接
 
-- 项目网站（Qoder Sites 发布后填写）：`待发布`
+- 项目网站：https://studyflow-5f95sikusqy.qoder.zone/
 - 代码仓库：`https://github.com/brighter750/powercontext`（分支 `2026-competition-ecosystem`，目录 `qoder/`）
 - PowerContext：`https://github.com/oceanbase/powercontext`
 

@@ -64,7 +64,7 @@ npx serve qoder/site
 
 ## 已发布地址
 
-`待发布`
+https://studyflow-5f95sikusqy.qoder.zone/
 
 ## 注意事项
 
