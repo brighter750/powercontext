@@ -1,0 +1,21 @@
+# PowerContext Server 访问日志（记忆与 Scope 操作）
+# 由 dify/scripts/export_server_log.py 从 Server 的 JSON 日志中筛选生成
+# 记录条数：17
+
+01 2026-11-01T04:44:52.543263+00:00 operation=create_scope outcome=success status=201 duration_ms=10.157200042158365 request_id=5863eb24b3f86697
+02 2026-11-01T04:44:52.543263+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=9.115100023336709 request_id=5bda64b8aca10d93
+03 2026-11-01T04:44:58.492996+00:00 operation=remember_memory outcome=success status=200 duration_ms=453.86649994179606 request_id=5112803c11272eb1
+04 2026-11-01T04:44:58.509745+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=7.598099997267127 request_id=1e11ea1ee93f846e
+05 2026-11-01T04:44:58.693218+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=10.283299954608083 request_id=ebfdd0daab2bb065
+06 2026-11-01T04:45:00.326025+00:00 operation=create_scope outcome=success status=201 duration_ms=5.636799964122474 request_id=3f948e8a10385c12
+07 2026-11-01T04:45:00.341994+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=9.63200000114739 request_id=5646405e70595747
+08 2026-11-01T04:45:03.493112+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=8.121200022287667 request_id=1ee695d86e3778a0
+09 2026-11-01T04:45:03.582216+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=9.803100023418665 request_id=7ba43f7cfdaf4d15
+10 2026-11-01T04:45:04.182099+00:00 operation=create_scope outcome=success status=201 duration_ms=5.752600030973554 request_id=cddb297652a4eb77
+11 2026-11-01T04:45:04.192090+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=8.687400026246905 request_id=2319cfc179dad56c
+12 2026-11-01T04:45:06.459812+00:00 operation=remember_memory outcome=success status=200 duration_ms=19.39260005019605 request_id=a2de56e7a128b900
+13 2026-11-01T04:45:06.468757+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=9.192300029098988 request_id=011385e14ff33664
+14 2026-11-01T04:45:06.548933+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=9.119499940425158 request_id=88d2902adda1f524
+15 2026-11-01T04:45:07.159813+00:00 operation=create_scope outcome=success status=201 duration_ms=9.398799971677363 request_id=031c018965fc2347
+16 2026-11-01T04:45:07.159813+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=7.726400042884052 request_id=6b09a01411d9849c
+17 2026-11-01T04:45:10.025392+00:00 operation=list_memory_entries outcome=success status=200 duration_ms=7.601300021633506 request_id=48935fb20124e3bf

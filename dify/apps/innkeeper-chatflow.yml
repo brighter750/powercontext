@@ -1,0 +1,851 @@
+app:
+  description: 忘忧酒肆的掌柜阿墨，记得每个旅人说过的话。记忆册由 PowerContext 持久化，换个会话再来，她还记得你。
+  icon: 🏮
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: 忘忧酒肆 · 记忆掌柜
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: PowerContext Server 基地址。Dify 在容器里跑时用 http://host.docker.internal:8000 访问宿主机。
+    id: 1f6c2a10-9d3b-4f21-8a77-0b5c1d7e4a01
+    name: POWERCONTEXT_BASE_URL
+    value: http://host.docker.internal:8000
+    value_type: string
+  - description: PowerContext 访问令牌。Server 未开启鉴权时填任意非空占位符（例如 disabled）；切勿留空。
+    id: 1f6c2a10-9d3b-4f21-8a77-0b5c1d7e4a02
+    name: POWERCONTEXT_TOKEN
+    value: disabled
+    value_type: secret
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: 旧渡口，风里带着酒气。两盏红灯在檐下晃。你推门进来，柜台后头有人抬起眼：「客官，里头请——今儿想喝点什么？」
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 我叫阿福，最爱喝桂花酿
+    - 掌柜还记得我上回干过什么吗？
+    - 把酒壶藏进柴房那次到底是谁干的？
+    - 我欠你一句话，这次来还
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: code
+      id: start-source-prep-target
+      selected: false
+      source: start
+      sourceHandle: source
+      target: prep
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: http-request
+      id: prep-source-ensure_scope-target
+      selected: false
+      source: prep
+      sourceHandle: source
+      target: ensure_scope
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: code
+      id: ensure_scope-source-scope_parse-target
+      selected: false
+      source: ensure_scope
+      sourceHandle: source
+      target: scope_parse
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: http-request
+      id: scope_parse-source-load_memory-target
+      selected: false
+      source: scope_parse
+      sourceHandle: source
+      target: load_memory
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: code
+      id: load_memory-source-digest-target
+      selected: false
+      source: load_memory
+      sourceHandle: source
+      target: digest
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: llm
+      id: digest-source-llm-target
+      selected: false
+      source: digest
+      sourceHandle: source
+      target: llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: code
+      id: llm-source-parse-target
+      selected: false
+      source: llm
+      sourceHandle: source
+      target: parse
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: if-else
+      id: parse-source-branch-target
+      selected: false
+      source: parse
+      sourceHandle: source
+      target: branch
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: branch-source-remember-target
+      selected: false
+      source: branch
+      sourceHandle: 'true'
+      target: remember
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: branch-source-reload-target
+      selected: false
+      source: branch
+      sourceHandle: 'false'
+      target: reload
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: http-request
+      id: remember-source-reload-target
+      selected: false
+      source: remember
+      sourceHandle: source
+      target: reload
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: code
+      id: reload-source-render-target
+      selected: false
+      source: reload
+      sourceHandle: source
+      target: render
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: answer
+      id: render-source-answer-target
+      selected: false
+      source: render
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 旅人代号决定翻开哪一本记忆册；同一个代号在任意新会话里都会读到同一本册子。
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 旅人代号
+          max_length: 32
+          options: []
+          required: true
+          type: text-input
+          variable: player_id
+      height: 116
+      id: start
+      position:
+        x: 80
+        y: 300
+      positionAbsolute:
+        x: 80
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        code: |
+          import re
+
+          def main(player_id: str) -> dict:
+              raw = (player_id or "").strip()
+              # 只保留字母、数字、下划线、连字符、点与中文，去掉会破坏 JSON 的引号反斜杠等字符
+              cleaned = re.sub(r"[^\w\s\-.]", "", raw, flags=re.UNICODE)
+              cleaned = re.sub(r"\s+", " ", cleaned).strip()
+              display = cleaned[:32] if cleaned else "无名客"
+              key_source = re.sub(r"\s+", "-", cleaned) if cleaned else "anonymous"
+              key_source = re.sub(r"[^\w\-.]", "-", key_source)
+              return {
+                  "display_name": display,
+                  "scope_key": ("dify-innkeeper-" + key_source)[:256],
+                  "scope_title": ("忘忧酒肆 · 记忆册 · " + display)[:256],
+                  "scope_summary": ("旅人 " + display + " 在忘忧酒肆的记忆册，由 Dify Chatflow 维护。")[:2000],
+              }
+        code_language: python3
+        desc: 清洗旅人代号，生成幂等键与记忆册标题，避免特殊字符破坏 JSON 请求体。
+        outputs:
+          display_name:
+            children: null
+            type: string
+          scope_key:
+            children: null
+            type: string
+          scope_summary:
+            children: null
+            type: string
+          scope_title:
+            children: null
+            type: string
+        selected: false
+        title: 准备旅人档案
+        type: code
+        variables:
+        - value_selector:
+          - start
+          - player_id
+          variable: player_id
+      height: 200
+      id: prep
+      position:
+        x: 360
+        y: 300
+      positionAbsolute:
+        x: 360
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        authorization:
+          config: null
+          type: ''
+        body:
+          data: '{"title": "{{#prep.scope_title#}}", "summary": "{{#prep.scope_summary#}}", "idempotency_key": "{{#prep.scope_key#}}"}'
+          type: json
+        desc: 用幂等键在 PowerContext 建立（或复用）这位旅人的记忆册 Scope。
+        headers: "Content-Type:application/json\nAuthorization:Bearer {{#env.POWERCONTEXT_TOKEN#}}"
+        method: post
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 30
+        title: 建立记忆册 Scope
+        type: http-request
+        url: '{{#env.POWERCONTEXT_BASE_URL#}}/v1/scopes'
+        variables: []
+      height: 148
+      id: ensure_scope
+      position:
+        x: 640
+        y: 300
+      positionAbsolute:
+        x: 640
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        code: |
+          import json
+
+          def main(scope_body: str) -> dict:
+              try:
+                  payload = json.loads(scope_body)
+              except Exception as error:
+                  raise ValueError("PowerContext /v1/scopes 返回的不是合法 JSON：" + str(scope_body)[:200]) from error
+              scope_id = payload.get("scope_id") or ""
+              if not scope_id:
+                  raise ValueError("PowerContext /v1/scopes 没有返回 scope_id：" + str(scope_body)[:200])
+              return {"scope_id": scope_id}
+        code_language: python3
+        desc: 从建册响应里取出 scope_id，后续所有读写都用它定位这本记忆册。
+        outputs:
+          scope_id:
+            children: null
+            type: string
+        selected: false
+        title: 取回记忆册 ID
+        type: code
+        variables:
+        - value_selector:
+          - ensure_scope
+          - body
+          variable: scope_body
+      height: 140
+      id: scope_parse
+      position:
+        x: 920
+        y: 300
+      positionAbsolute:
+        x: 920
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        authorization:
+          config: null
+          type: ''
+        body:
+          data: '{"scope_id": "{{#scope_parse.scope_id#}}", "limit": 50, "include_inactive": false}'
+          type: json
+        desc: 读出这本记忆册里现存的全部记忆（本轮开始前的状态）。
+        headers: "Content-Type:application/json\nAuthorization:Bearer {{#env.POWERCONTEXT_TOKEN#}}"
+        method: post
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 30
+        title: 读取记忆册
+        type: http-request
+        url: '{{#env.POWERCONTEXT_BASE_URL#}}/v1/memory/entries/list'
+        variables: []
+      height: 148
+      id: load_memory
+      position:
+        x: 1200
+        y: 300
+      positionAbsolute:
+        x: 1200
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        code: |
+          import json
+
+          def main(entries_body: str, display_name: str) -> dict:
+              payload = json.loads(entries_body)
+              entries = payload.get("entries") or []
+              if entries:
+                  lines = []
+                  for index, entry in enumerate(entries, start=1):
+                      kind = entry.get("kind") or "记忆"
+                      text = entry.get("text") or ""
+                      lines.append(str(index) + ". [" + str(kind) + "] " + str(text))
+                  digest = "\n".join(lines)
+                  stage = "熟客"
+              else:
+                  digest = "（空：这本记忆册还没有任何记录）"
+                  stage = "新客"
+              return {
+                  "memory_digest": digest,
+                  "memory_count": str(len(entries)),
+                  "guest_stage": stage,
+              }
+        code_language: python3
+        desc: 把记忆册压成给模型看的摘要，并判断这位旅人今天是新客还是熟客。
+        outputs:
+          guest_stage:
+            children: null
+            type: string
+          memory_count:
+            children: null
+            type: string
+          memory_digest:
+            children: null
+            type: string
+        selected: false
+        title: 整理记忆册摘要
+        type: code
+        variables:
+        - value_selector:
+          - load_memory
+          - body
+          variable: entries_body
+        - value_selector:
+          - prep
+          - display_name
+          variable: display_name
+      height: 160
+      id: digest
+      position:
+        x: 1480
+        y: 300
+      positionAbsolute:
+        x: 1480
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        context:
+          enabled: false
+          variable_selector:
+          - sys
+          - query
+        desc: 掌柜阿墨开口。只给模型两样东西：PowerContext 读回来的记忆册摘要，和这一轮旅人说的话。不开会话短期记忆。
+        memory:
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 10
+        model:
+          completion_params:
+            temperature: 0.8
+          mode: chat
+          name: MiniMax-M2.7
+          provider: langgenius/openai_api_compatible
+        prompt_template:
+        - id: 6c1f9f02-7a4d-4c3b-9b58-2f0d1e6a7c11
+          role: system
+          text: |
+            你是「忘忧酒肆」的掌柜，江湖人称「阿墨」。
+            酒肆开在城西旧渡口，檐下两盏红灯不灭。来往的旅人你从不多问，却记得清清楚楚：谁爱喝什么酒、谁欠着话没说完、谁上回把酒壶藏进了柴房。你的记性就是这间铺子的招牌。
+
+            【旅人代号】{{#prep.display_name#}}
+
+            【他的记忆册（由 PowerContext 读回，可能为空）】
+            {{#digest.memory_digest#}}
+
+            【这一轮旅人说的话】
+            {{#sys.query#}}
+
+            【怎么演】
+            1. 先看记忆册再开口。册子里有的，别装作第一次听说；册子里没有的，不要凭空编造。
+            2. 记忆册为空，这是新客：先招呼，再随口问一句对方怎么称呼、来做什么，别急着掏心窝。
+            3. 记忆册不为空，这是熟客：开口就点出册子里的一两件旧事（可以翻那件糗事的旧账），嘴上刻薄、手上勤快，让对方一眼看出「你还记得我」。
+            4. 最多三句话，有画面、有江湖气，句子短。不写小作文，不写旁白动作描写，不说「有什么可以帮您」这类客服话。
+            5. 只用中文。不要输出思考过程，不要解释你在用什么记忆系统。
+
+            【要记什么】
+            每轮最多往记忆册补一条：
+            - 这一轮出现了新的事实、偏好、承诺或糗事：remember=true，kind 从 fact / trait / promise / prank / story 里挑一个，text 用一句话写清「旅人」加上这件事，20 到 60 字。
+            - 这一轮没有新东西（只是闲聊）：remember=false。
+            - 记忆册里已有的事不要重复记。text 里不要出现引号和换行。
+
+            【输出格式】
+            先写正文，然后另起一行输出一个 json 代码块，除此之外不要有任何内容。
+
+            正文（一到三句掌柜的话）
+
+            ```json
+            {"remember": true, "kind": "fact", "text": "旅人阿福自称姓福，最爱喝桂花酿。"}
+            ```
+        - id: 6c1f9f02-7a4d-4c3b-9b58-2f0d1e6a7c12
+          role: user
+          text: '{{#sys.query#}}'
+        selected: false
+        title: 阿墨开口
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 120
+      id: llm
+      position:
+        x: 1760
+        y: 300
+      positionAbsolute:
+        x: 1760
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        code: |
+          import json
+          import re
+
+          ALLOWED_KINDS = ("fact", "trait", "promise", "prank", "story")
+          TRUTHY = ("true", "1", "yes", "y")
+          FALSY = ("false", "0", "no", "n")
+
+          def _extract_payload(raw):
+              blocks = re.findall(r"```(?:json)?\s*(.*?)```", raw, flags=re.DOTALL | re.IGNORECASE)
+              candidates = list(blocks)
+              start = raw.rfind("{")
+              end = raw.rfind("}")
+              if start != -1 and end > start:
+                  candidates.append(raw[start:end + 1])
+              for candidate in candidates:
+                  try:
+                      parsed = json.loads(candidate)
+                  except Exception:
+                      continue
+                  if isinstance(parsed, dict):
+                      return parsed
+              return {}
+
+          def _strip_block(raw):
+              cleaned = re.sub(r"```(?:json)?\s*.*?```", "", raw, flags=re.DOTALL | re.IGNORECASE)
+              cleaned = re.sub(r"\{.*\}", "", cleaned, flags=re.DOTALL)
+              return cleaned.strip()
+
+          def main(llm_text: str, scope_id: str) -> dict:
+              raw = llm_text or ""
+              payload = _extract_payload(raw)
+              flag_raw = payload.get("remember")
+              kind = str(payload.get("kind") or "").strip().lower()
+              memory_text = " ".join(str(payload.get("text") or "").split())
+              if kind not in ALLOWED_KINDS:
+                  kind = "story"
+              if isinstance(flag_raw, bool):
+                  flag = flag_raw
+              elif isinstance(flag_raw, str) and flag_raw.strip().lower() in TRUTHY + FALSY:
+                  flag = flag_raw.strip().lower() in TRUTHY
+              else:
+                  flag = bool(memory_text)
+              if not memory_text:
+                  flag = False
+              narration = _strip_block(raw)
+              if not narration:
+                  narration = "掌柜没吭声，低头把杯子擦了两遍。"
+              remember_payload = json.dumps(
+                  {"scope_id": scope_id, "kind": kind, "text": memory_text},
+                  ensure_ascii=False,
+              )
+              return {
+                  "narration": narration,
+                  "remember_flag": "true" if flag else "false",
+                  "memory_kind": kind,
+                  "memory_text": memory_text,
+                  "remember_payload": remember_payload,
+              }
+        code_language: python3
+        desc: 把掌柜的话和要落库的 JSON 拆开，并预序列化写入请求体，避免中文和引号把 JSON 弄坏。
+        outputs:
+          memory_kind:
+            children: null
+            type: string
+          memory_text:
+            children: null
+            type: string
+          narration:
+            children: null
+            type: string
+          remember_flag:
+            children: null
+            type: string
+          remember_payload:
+            children: null
+            type: string
+        selected: false
+        title: 拆开掌柜的话
+        type: code
+        variables:
+        - value_selector:
+          - llm
+          - text
+          variable: llm_text
+        - value_selector:
+          - scope_parse
+          - scope_id
+          variable: scope_id
+      height: 180
+      id: parse
+      position:
+        x: 2040
+        y: 300
+      positionAbsolute:
+        x: 2040
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: 3d8a5c11-2b7e-4f60-9c4a-8e1d3f5a6b21
+            value: 'true'
+            varType: string
+            variable_selector:
+            - parse
+            - remember_flag
+          id: 'true'
+          logical_operator: and
+        - case_id: 'false'
+          conditions:
+          - comparison_operator: is
+            id: 3d8a5c11-2b7e-4f60-9c4a-8e1d3f5a6b22
+            value: 'false'
+            varType: string
+            variable_selector:
+            - parse
+            - remember_flag
+          id: 'false'
+          logical_operator: and
+        desc: 这一轮有没有值得落库的新记忆。有则写进 PowerContext，没有就跳过写入。
+        selected: false
+        title: 要不要记进记忆册
+        type: if-else
+      height: 152
+      id: branch
+      position:
+        x: 2320
+        y: 300
+      positionAbsolute:
+        x: 2320
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        authorization:
+          config: null
+          type: ''
+        body:
+          data: '{{#parse.remember_payload#}}'
+          type: json
+        desc: 把本轮新记忆写进 PowerContext 的 Atomic Memory。
+        headers: "Content-Type:application/json\nAuthorization:Bearer {{#env.POWERCONTEXT_TOKEN#}}"
+        method: post
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 30
+        title: 写入记忆册
+        type: http-request
+        url: '{{#env.POWERCONTEXT_BASE_URL#}}/v1/memory/remember'
+        variables: []
+      height: 148
+      id: remember
+      position:
+        x: 2600
+        y: 180
+      positionAbsolute:
+        x: 2600
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        authorization:
+          config: null
+          type: ''
+        body:
+          data: '{"scope_id": "{{#scope_parse.scope_id#}}", "limit": 50, "include_inactive": false}'
+          type: json
+        desc: 写入后重新读一遍记忆册，回给旅人看的册子就是 PowerContext 里的真实内容。
+        headers: "Content-Type:application/json\nAuthorization:Bearer {{#env.POWERCONTEXT_TOKEN#}}"
+        method: post
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 30
+        title: 复核记忆册
+        type: http-request
+        url: '{{#env.POWERCONTEXT_BASE_URL#}}/v1/memory/entries/list'
+        variables: []
+      height: 148
+      id: reload
+      position:
+        x: 2880
+        y: 300
+      positionAbsolute:
+        x: 2880
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        code: |
+          import json
+
+          def main(narration: str, entries_body: str, display_name: str, scope_id: str) -> dict:
+              payload = json.loads(entries_body)
+              entries = payload.get("entries") or []
+              lines = []
+              for index, entry in enumerate(entries, start=1):
+                  kind = entry.get("kind") or "记忆"
+                  text = entry.get("text") or ""
+                  lines.append(str(index) + ". [" + str(kind) + "] " + str(text))
+              if lines:
+                  book = "\n".join(lines)
+                  footer = "（记忆册来自 PowerContext：scope " + str(scope_id) + "，共 " + str(len(entries)) + " 条）"
+              else:
+                  book = "（这本记忆册还是空的）"
+                  footer = "（记忆册来自 PowerContext：scope " + str(scope_id) + "）"
+              final_answer = (
+                  str(narration).strip()
+                  + "\n\n【记忆册 · " + str(display_name) + "】\n"
+                  + book
+                  + "\n"
+                  + footer
+              )
+              return {"final_answer": final_answer}
+        code_language: python3
+        desc: 把掌柜的话和 PowerContext 里读回来的记忆册拼成最终回复，册子内容对评审完全可见。
+        outputs:
+          final_answer:
+            children: null
+            type: string
+        selected: false
+        title: 渲染最终回复
+        type: code
+        variables:
+        - value_selector:
+          - parse
+          - narration
+          variable: narration
+        - value_selector:
+          - reload
+          - body
+          variable: entries_body
+        - value_selector:
+          - prep
+          - display_name
+          variable: display_name
+        - value_selector:
+          - scope_parse
+          - scope_id
+          variable: scope_id
+      height: 160
+      id: render
+      position:
+        x: 3160
+        y: 300
+      positionAbsolute:
+        x: 3160
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        answer: '{{#render.final_answer#}}'
+        desc: 直接回复。
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 90
+      id: answer
+      position:
+        x: 3440
+        y: 300
+      positionAbsolute:
+        x: 3440
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

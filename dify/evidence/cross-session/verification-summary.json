@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-11-01T12:45:10+0800",
+  "powercontext_base_url": "http://127.0.0.1:8000",
+  "dsl": "C:\\Users\\mazhe\\powercontext\\dify\\apps\\innkeeper-chatflow.yml",
+  "player_id": "阿福",
+  "other_player_id": "路人乙",
+  "scope_id": "scp_5ss2zaswenwy2n1d4cjf1ck3g2",
+  "session_one_message": "掌柜好，我叫阿福，最爱喝桂花酿。以后我大概会常来。",
+  "session_two_question": "掌柜，我上回说过我喜欢喝什么酒来着？",
+  "session_three_message": "对了掌柜，我这次要赊一坛女儿红走，下月初还你钱，别记错了。",
+  "secret_fact": "桂花酿",
+  "new_fact": "女儿红",
+  "entries_after_session_one": [
+    {
+      "artifact": {
+        "family": "atomic-memory",
+        "artifact_id": "art_2120a370d3dc4662bbc9acdd4557d080",
+        "revision": 1
+      },
+      "kind": "trait",
+      "text": "旅人阿福自称最爱喝桂花酿，并说以后大概会常来酒肆。",
+      "state": "active",
+      "state_version": 0,
+      "merged_into_id": null
+    }
+  ],
+  "entries_after_session_two": [
+    {
+      "artifact": {
+        "family": "atomic-memory",
+        "artifact_id": "art_2120a370d3dc4662bbc9acdd4557d080",
+        "revision": 1
+      },
+      "kind": "trait",
+      "text": "旅人阿福自称最爱喝桂花酿，并说以后大概会常来酒肆。",
+      "state": "active",
+      "state_version": 0,
+      "merged_into_id": null
+    }
+  ],
+  "entries_after_session_three": [
+    {
+      "artifact": {
+        "family": "atomic-memory",
+        "artifact_id": "art_2120a370d3dc4662bbc9acdd4557d080",
+        "revision": 1
+      },
+      "kind": "trait",
+      "text": "旅人阿福自称最爱喝桂花酿，并说以后大概会常来酒肆。",
+      "state": "active",
+      "state_version": 0,
+      "merged_into_id": null
+    },
+    {
+      "artifact": {
+        "family": "atomic-memory",
+        "artifact_id": "art_706e03949bf54ca4bc6ebb75f8bfb755",
+        "revision": 1
+      },
+      "kind": "promise",
+      "text": "旅人阿福要赊一坛女儿红走，约定下月初还钱。",
+      "state": "active",
+      "state_version": 0,
+      "merged_into_id": null
+    }
+  ],
+  "session_two_answer": "你说过最爱喝桂花酿。怎么，这回连自己的酒都忘了？掌柜还记得呢，先给你满上一杯。\n\n【记忆册 · 阿福】\n1. [trait] 旅人阿福自称最爱喝桂花酿，并说以后大概会常来酒肆。\n（记忆册来自 PowerContext：scope scp_5ss2zaswenwy2n1d4cjf1ck3g2，共 1 条）",
+  "session_three_answer": "阿福，上回还说自己最爱桂花酿，今儿倒要赊女儿红？行，下月初一文不少地还我，我可记在酒簿上了。\n\n【记忆册 · 阿福】\n1. [trait] 旅人阿福自称最爱喝桂花酿，并说以后大概会常来酒肆。\n2. [promise] 旅人阿福要赊一坛女儿红走，约定下月初还钱。\n（记忆册来自 PowerContext：scope scp_5ss2zaswenwy2n1d4cjf1ck3g2，共 2 条）",
+  "control_answer": "这位客官，您这一问倒把我问住了——册子上还没记过您爱喝什么酒。来，报个名号，今日是来歇脚还是讨杯酒？\n\n【记忆册 · 路人乙】\n（这本记忆册还是空的）\n（记忆册来自 PowerContext：scope scp_2re3x1aqf50xpg37fzjys6dkmz）",
+  "checks": [
+    {
+      "check": "会话1把新记忆写进 PowerContext",
+      "passed": true,
+      "detail": "scope=scp_5ss2zaswenwy2n1d4cjf1ck3g2，写入后共 1 条：[trait] 旅人阿福自称最爱喝桂花酿，并说以后大概会常来酒肆。"
+    },
+    {
+      "check": "会话2从 PowerContext 读到记忆并在回答里用上",
+      "passed": true,
+      "detail": "提问里没有出现「桂花酿」，回答中出现：你说过最爱喝桂花酿。怎么，这回连自己的酒都忘了？掌柜还记得呢，先给你满上一杯。"
+    },
+    {
+      "check": "会话2没有把同一件事重复记一遍",
+      "passed": true,
+      "detail": "会话1后 1 条 → 会话2后 1 条（纯回忆轮没有新事实，不应重复落库）"
+    },
+    {
+      "check": "记忆随互动更新",
+      "passed": true,
+      "detail": "会话2后 1 条 → 会话3后 2 条：[trait] 旅人阿福自称最爱喝桂花酿，并说以后大概会常来酒肆。 / [promise] 旅人阿福要赊一坛女儿红走，约定下月初还钱。"
+    },
+    {
+      "check": "另一个旅人读不到这本记忆册",
+      "passed": true,
+      "detail": "对照旅人回答：这位客官，您这一问倒把我问住了——册子上还没记过您爱喝什么酒。来，报个名号，今日是来歇脚还是讨杯酒？"
+    }
+  ],
+  "all_passed": true
+}
