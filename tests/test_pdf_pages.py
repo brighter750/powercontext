@@ -114,6 +114,59 @@ def _blank_pdf_bytes(count: int) -> bytes:
     return buffer.getvalue()
 
 
+def _pdf_with_declared_contents(
+    specs: Sequence[tuple[str | None, str | None]],
+    extra: dict[int, bytes] | None = None,
+) -> bytes:
+    """Build a PDF whose pages declare the given ``/Contents`` values.
+
+    Every spec is a pair: the raw value of the ``/Contents`` entry of one page
+    - ``None`` leaves the key out of the page - and the text the content
+    stream of that page carries. A reference the document does not hold is
+    written into the page as it is, so the reader has to resolve it to reach
+    the content of the page.
+    """
+
+    count = len(specs)
+    kids = " ".join(f"{4 + 2 * index} 0 R" for index in range(count))
+    objects: dict[int, bytes] = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: f"<< /Type /Pages /Kids [{kids}] /Count {count} >>".encode("latin-1"),
+        3: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    }
+    for index, (contents, text) in enumerate(specs):
+        page_number = 4 + 2 * index
+        content_number = 5 + 2 * index
+        declared = "" if contents is None else f"/Contents {contents} "
+        objects[page_number] = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> {declared}>>"
+        ).encode("latin-1")
+        if text is None:
+            payload = b""
+        else:
+            payload = f"BT /F1 12 Tf 72 720 Td ({_escape_pdf_text(text)}) Tj ET\n".encode("latin-1")
+        objects[content_number] = (
+            b"<< /Length " + str(len(payload)).encode("latin-1") + b" >>\nstream\n" + payload + b"endstream"
+        )
+    objects.update(extra or {})
+
+    document = bytearray(b"%PDF-1.4\n")
+    offsets: dict[int, int] = {}
+    for number in sorted(objects):
+        offsets[number] = len(document)
+        document += f"{number} 0 obj\n".encode("latin-1") + objects[number] + b"\nendobj\n"
+    xref_offset = len(document)
+    size = max(objects) + 1
+    document += f"xref\n0 {size}\n".encode("latin-1")
+    document += b"0000000000 65535 f \n"
+    for number in range(1, size):
+        document += (
+            f"{offsets[number]:010d} 00000 n \n".encode("latin-1") if number in offsets else b"0000000000 65535 f \n"
+        )
+    document += f"trailer\n<< /Size {size} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("latin-1")
+    return bytes(document)
+
+
 def _parse(content: bytes, document_id: str = "report"):
     return parse_pdf_document(PDFDocumentInput(document_id=document_id, content=content))
 
@@ -207,6 +260,72 @@ def test_parse_fails_atomically_when_a_page_cannot_be_read() -> None:
 
     with pytest.raises(ValueError):
         _parse(content)
+
+
+def test_parse_rejects_a_page_whose_content_stream_the_document_does_not_hold() -> None:
+    """A page that points at content the document lost must fail as a whole.
+
+    The reader repairs such a page by handing it back without any text, which
+    would turn a damaged document into a document with a silently empty page.
+    """
+
+    content = _pdf_with_declared_contents([("99 0 R", None), ("7 0 R", "Beta revenue")])
+
+    with pytest.raises(ValueError):
+        _parse(content)
+
+
+def test_parse_rejects_a_page_whose_content_array_loses_one_of_its_streams() -> None:
+    """A content array that lost one of its streams must fail as a whole.
+
+    The reader keeps the streams it can resolve and drops the others, so the
+    page would come back with only part of its content.
+    """
+
+    content = _pdf_with_declared_contents([("[5 0 R 99 0 R]", "Alpha revenue"), ("7 0 R", "Beta revenue")])
+
+    with pytest.raises(ValueError):
+        _parse(content)
+
+
+def test_parse_rejects_a_page_whose_content_is_not_a_stream() -> None:
+    """Content that cannot be read as a stream must fail as a whole."""
+
+    content = _pdf_with_declared_contents([("90 0 R", None)], extra={90: b"<< /Type /Bogus >>"})
+
+    with pytest.raises(ValueError):
+        _parse(content)
+
+
+def test_parse_keeps_a_page_that_declares_no_content() -> None:
+    """A page without a content entry is a blank page, not a damaged one."""
+
+    content = _pdf_with_declared_contents([(None, None), ("7 0 R", "Beta revenue")])
+
+    pages = _parse(content)
+
+    assert [(page.page_number, page.text) for page in pages] == [(1, ""), (2, "Beta revenue")]
+
+
+def test_parse_keeps_a_page_with_an_empty_content_stream() -> None:
+    """A page whose content stream is empty is a blank page, not a damaged one."""
+
+    content = _pdf_with_declared_contents([("5 0 R", None), ("7 0 R", "Beta revenue")])
+
+    pages = _parse(content)
+
+    assert [(page.page_number, page.text) for page in pages] == [(1, ""), (2, "Beta revenue")]
+
+
+def test_parse_rejects_a_document_whose_page_object_is_damaged() -> None:
+    """A page the document does not hold must not turn into a shorter document."""
+
+    content = _pdf_bytes([["Alpha revenue"], ["Beta revenue"]])
+    damaged = content.replace(b"/Kids [4 0 R 6 0 R]", b"/Kids [4 0 R 99 0 R]")
+
+    assert damaged != content
+    with pytest.raises(ValueError):
+        _parse(damaged)
 
 
 def test_parse_rejects_a_document_that_lost_one_of_its_pages() -> None:

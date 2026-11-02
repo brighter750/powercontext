@@ -27,6 +27,7 @@ from urllib.parse import quote
 
 from pydantic import BaseModel, Field, field_validator
 from pypdf import PasswordType, PdfReader
+from pypdf.generic import NullObject, StreamObject
 
 from powercontext.artifacts import MemoryCitation
 from powercontext.builtin.artifacts.search import analyze_fts_query, analyze_text
@@ -68,6 +69,14 @@ _WINDOW_LIMIT = 150
 # the decisive evidence page is usually ranked near the top of the sub-query
 # that names its subject.
 _RANK_CONSTANT = 15
+
+# The step between two term pairs of the plan. A Memory search costs the same
+# whether it returns one candidate or two hundred, so the number of queries
+# decides what one question costs. Taking every second pair keeps the pairs
+# that carry the wording of the question while halving the number of queries.
+# The pages that answer the published questions stay the same pages, though
+# their order inside the answer can change.
+_WINDOW_STRIDE = 2
 
 # The relative weight of the offline relevance signals.
 #
@@ -271,7 +280,90 @@ def _read_pages(content: bytes) -> tuple[Any, ...]:
         raise ValueError("PDF document could not be read") from error  # noqa: TRY003
 
     _reject_incomplete_document(reader, len(pages))
+    _reject_unreadable_content(pages)
     return pages
+
+
+def _reject_unreadable_content(pages: Sequence[Any]) -> None:
+    """Refuse a document whose pages declare content the document does not hold.
+
+    A damaged document can lose the content of one page without losing the
+    page itself. The reader repairs what it can and hands the page back as if
+    it were complete: a page whose content stream points at an object the
+    document does not hold becomes a page without any text, and a page whose
+    content is an array loses the streams it cannot resolve. Such a document
+    would be stored as a document whose pages are silently shorter than they
+    are, which is exactly the loss this contract refuses to accept, so the
+    content a page declares has to be readable before the document is taken.
+    """
+
+    for number, page in enumerate(pages, start=1):
+        if _declares_unreadable_content(page):
+            raise ValueError(  # noqa: TRY003
+                f"PDF page {number} declares a content stream the document does not hold"
+            )
+
+
+def _declares_unreadable_content(page: Any) -> bool:
+    """Report whether a page declares content the document cannot hand over."""
+
+    try:
+        raw = _declared_contents(page)
+    except Exception:
+        return True
+    if raw is None:
+        # The page declares no content at all, which is what a blank page
+        # looks like.
+        return False
+    candidates = raw if isinstance(raw, list) else [raw]
+    return any(_is_unreadable_content(candidate) for candidate in candidates)
+
+
+def _declared_contents(page: Any) -> Any:
+    """Return the content a page declares, without resolving it.
+
+    ``None`` means the page declares no content at all. The value is
+    deliberately left unresolved: a reference the document does not hold has
+    to stay visible for the check, and a resolved value would hide it.
+    """
+
+    getter = getattr(page, "raw_get", None)
+    try:
+        if getter is not None:
+            return getter("/Contents")
+        return page.get("/Contents")
+    except KeyError:
+        # The page carries no content at all, which is legal.
+        return None
+
+
+def _is_unreadable_content(candidate: Any) -> bool:
+    """Report whether one declared content stream cannot be read."""
+
+    getter = getattr(candidate, "get_object", None)
+    if getter is None:
+        # The content is held by the page itself instead of by a reference.
+        return not _is_content_stream(candidate)
+    try:
+        resolved = getter()
+    except Exception:
+        return True
+    if resolved is None:
+        return True
+    return not _is_content_stream(resolved)
+
+
+def _is_content_stream(candidate: Any) -> bool:
+    """Report whether an object can serve as the content of a page.
+
+    A page holds a content stream or nothing at all. An object that is not a
+    stream cannot be read as the content of a page, and a null object declares
+    that the page has no content, which is legal.
+    """
+
+    if isinstance(candidate, NullObject):
+        return True
+    return isinstance(candidate, StreamObject)
 
 
 def _reject_incomplete_document(reader: Any, parsed: int) -> None:
@@ -444,18 +536,19 @@ def _plan_windows(terms: Sequence[str], live: Sequence[str]) -> tuple[tuple[str,
     the question. Each adjacent pair of terms becomes its own query instead,
     because a two-term query only has to cover one term to be admitted. The
     pairs follow the question order, so a pair like ``cash flow`` keeps the
-    phrase the question used.
+    phrase the question used, and every second pair is taken because a search
+    costs the same whatever it returns.
     """
 
     live_terms = set(live)
     plan: list[tuple[str, tuple[str, ...]]] = []
-    for index in range(len(terms) - 1):
+    index = 0
+    while index < len(terms) - 1:
         pair = (terms[index], terms[index + 1])
         members = tuple(term for term in pair if term in live_terms)
-        if not members:
-            # Neither term of the pair occurs in the stored pages.
-            continue
-        plan.append((f"{pair[0]} {pair[1]}", members))
+        if members:
+            plan.append((f"{pair[0]} {pair[1]}", members))
+        index += _WINDOW_STRIDE
     if len(plan) > _MAX_SUB_QUERIES:
         plan = _evenly_spaced(plan, _MAX_SUB_QUERIES)
     return tuple(plan)

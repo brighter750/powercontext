@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -44,7 +45,7 @@ from powercontext.sources.pdf_pages import (
     search_pdf_pages,
 )
 
-from .test_pdf_pages import _pdf_bytes
+from .test_pdf_pages import _pdf_bytes, _pdf_with_declared_contents
 
 
 class _EvidencePipeline:
@@ -443,5 +444,99 @@ def test_search_returns_at_most_the_requested_number_of_citations(tmp_path: Path
             citations = await search_pdf_pages(memory, "PepsiCo revenue segment fiscal 2022", limit=limit)
 
             assert len(citations) <= limit
+
+    asyncio.run(scenario())
+
+
+class _SearchCounter:
+    """Count how many searches one question costs."""
+
+    def __init__(self, memory) -> None:
+        self._memory = memory
+        self.searches = 0
+
+    async def search(self, request):
+        self.searches += 1
+        return await self._memory.search(request)
+
+    async def get(self, request):
+        return await self._memory.get(request)
+
+
+def test_skipping_every_second_term_pair_does_not_change_the_pages_that_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The window plan may leave out pairs, but it must not change the answer.
+
+    A search costs the same whether it returns one candidate or two hundred,
+    so the plan asks for every second term pair of a question instead of every
+    pair. The pages that answer the question have to stay the same pages, the
+    citation of such a page has to stay the same citation, and the question
+    has to cost fewer searches than it did before.
+    """
+
+    async def scenario() -> None:
+        config, scope_id, _pages = await _prepare(tmp_path, [("alpha", _ALPHA), ("beta", _BETA), ("headed", _HEADED)])
+        question = "What are the restructuring costs and the legal proceedings disclosed?"
+
+        async def answered(stride: int) -> tuple[tuple[tuple[str, int], ...], int]:
+            with monkeypatch.context() as patch:
+                patch.setattr("powercontext.sources.pdf_pages._WINDOW_STRIDE", stride)
+                async with open_builtin_runtime(config, scheduler_path=tmp_path / "scheduler.db") as runtime:
+                    memory = runtime.memory.for_scope(scope_id)
+                    counter = _SearchCounter(memory)
+                    citations = await search_pdf_pages(counter, question, limit=10)
+                    return tuple(sorted(await _pages_of(memory, citations))), counter.searches
+
+        every_pair, every_pair_searches = await answered(1)
+        every_second_pair, every_second_pair_searches = await answered(2)
+
+        assert every_pair
+        assert every_second_pair == every_pair
+        assert every_second_pair_searches < every_pair_searches
+
+    asyncio.run(scenario())
+
+
+def test_a_document_that_cannot_be_read_leaves_no_page_in_the_memory(tmp_path: Path) -> None:
+    """A parse that fails must not leave the pages it read behind.
+
+    A host submits the pages of a document while the document is parsed. When
+    the parse fails, the pages that were read before the failure must not
+    reach the Memory, because a document stored half way is a document the
+    search would answer with.
+    """
+
+    async def scenario() -> None:
+        config = _config(tmp_path)
+        registry = SourceDefinitionRegistry((PDF_PAGE_SOURCE_DEFINITION,))
+        broken = _pdf_with_declared_contents([
+            ("5 0 R", "The zeppelin clause discloses escrow obligations"),
+            ("99 0 R", None),
+        ])
+
+        async with open_builtin_runtime(config, scheduler_path=tmp_path / "scheduler.db") as runtime:
+            assert runtime.scopes is not None
+            scope = await runtime.scopes.create(ScopeDraft(title="PDF", summary="Pages", idempotency_key="pdf-pages"))
+            await runtime.ingestion.register(manifest_for_definition(PDF_PAGE_SOURCE_DEFINITION))
+            for document_id, content in (("alpha", _ALPHA), ("broken", broken)):
+                with contextlib.suppress(ValueError):
+                    for page in parse_pdf_document(PDFDocumentInput(document_id=document_id, content=content)):
+                        source = await registry.resolve(page)
+                        observation = project_source_for_transport(registry, source)
+                        await runtime.ingestion.submit(
+                            SubmitSourceObservation(scope_id=scope.scope_id, observation=observation)
+                        )
+
+        await _store(config, tmp_path, scope.scope_id, 4)
+
+        async with open_builtin_runtime(config, scheduler_path=tmp_path / "scheduler.db") as runtime:
+            memory = runtime.memory.for_scope(scope.scope_id)
+
+            stored_broken = await search_pdf_pages(memory, "zeppelin escrow", limit=10)
+            assert await _pages_of(memory, stored_broken) == set()
+
+            stored_alpha = await search_pdf_pages(memory, "legal proceedings litigation", limit=10)
+            assert ("alpha", 2) in await _pages_of(memory, stored_alpha)
 
     asyncio.run(scenario())
