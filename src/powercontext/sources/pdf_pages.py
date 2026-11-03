@@ -50,6 +50,14 @@ PDF_PAGE_DEFINITION_VERSION = "1"
 
 _T = TypeVar("_T")
 
+# The identity of an indirect reference: its generation number and its object
+# number. The identities met on the way to a content are carried along, so a
+# structure that refers back to itself is recognized instead of followed.
+_ReferencePath = frozenset[tuple[int, int]]
+
+# The marker for an object a reader does not hold.
+_MISSING = object()
+
 # The retrieval plan below trades a wider candidate pool for precision. Each
 # sub-query is kept short on purpose: the Memory FTS admission floor demands
 # that a candidate covers a growing share of the query's distinct terms, so one
@@ -258,33 +266,52 @@ def _read_pages(content: bytes) -> tuple[Any, ...]:
     if content[:5] != b"%PDF-":
         raise ValueError("PDF document does not start with a PDF header")  # noqa: TRY003
 
+    reader = _open_reader(content)
+
+    pages = _read_all_pages(reader)
+
+    _reject_incomplete_document(reader, len(pages))
+    _reject_unreadable_content(content, len(pages))
+    return pages
+
+
+def _read_all_pages(reader: Any) -> tuple[Any, ...]:
+    """Return every physical page a reader holds.
+
+    A document that cannot be read completely is refused as a whole instead of
+    returning the pages that happened to be readable.
+    """
+
+    try:
+        return tuple(reader.pages)
+    except Exception as error:
+        raise ValueError("PDF document could not be read") from error  # noqa: TRY003
+
+
+def _open_reader(content: bytes) -> Any:
+    """Open one PDF document and make its pages readable.
+
+    An empty user password is a legal permission marker: the document is
+    readable without a secret. A document that still refuses to open needs a
+    password this contract does not carry.
+    """
+
     try:
         reader = PdfReader(io.BytesIO(content))
     except Exception as error:
         raise ValueError("PDF document could not be opened") from error  # noqa: TRY003
 
     if reader.is_encrypted:
-        # An empty user password is a legal permission marker: the document is
-        # readable without a secret. A document that still refuses to open
-        # needs a password this contract does not carry.
         try:
             outcome = reader.decrypt("")
         except Exception as error:
             raise ValueError("PDF document could not be decrypted") from error  # noqa: TRY003
         if outcome == PasswordType.NOT_DECRYPTED:
             raise ValueError("PDF document requires a password")  # noqa: TRY003
-
-    try:
-        pages = tuple(reader.pages)
-    except Exception as error:
-        raise ValueError("PDF document could not be read") from error  # noqa: TRY003
-
-    _reject_incomplete_document(reader, len(pages))
-    _reject_unreadable_content(pages)
-    return pages
+    return reader
 
 
-def _reject_unreadable_content(pages: Sequence[Any]) -> None:
+def _reject_unreadable_content(content: bytes, page_count: int) -> None:
     """Refuse a document whose pages declare content the document does not hold.
 
     A damaged document can lose the content of one page without losing the
@@ -295,28 +322,60 @@ def _reject_unreadable_content(pages: Sequence[Any]) -> None:
     would be stored as a document whose pages are silently shorter than they
     are, which is exactly the loss this contract refuses to accept, so the
     content a page declares has to be readable before the document is taken.
+
+    The check reads the document through a reader of its own. Resolving the
+    content of a page fills the cache of the reader that resolved it, and the
+    reader answers a later extraction from that cache, so a check that shared
+    the reader of the extraction would decide the text the document yields.
+    The reader of the extraction keeps the path a plain reader takes.
+
+    The check is closed: a reader of its own that cannot be opened, that
+    cannot read the pages, or that holds a different number of pages leaves
+    the content of the document unverified, and a document whose content was
+    not verified is not taken.
     """
 
+    try:
+        reader = _open_reader(content)
+    except Exception as error:
+        raise ValueError("PDF document could not be opened for the content check") from error  # noqa: TRY003
+    try:
+        pages = _read_all_pages(reader)
+    except Exception as error:
+        raise ValueError("PDF document could not be read for the content check") from error  # noqa: TRY003
+    if len(pages) != page_count:
+        raise ValueError("PDF document does not hold the same pages on every read")  # noqa: TRY003
     for number, page in enumerate(pages, start=1):
-        if _declares_unreadable_content(page):
-            raise ValueError(  # noqa: TRY003
-                f"PDF page {number} declares a content stream the document does not hold"
-            )
+        reason = _unreadable_content(page)
+        if reason is not None:
+            raise ValueError(_content_failure(number, reason))
 
 
-def _declares_unreadable_content(page: Any) -> bool:
-    """Report whether a page declares content the document cannot hand over."""
+def _content_failure(number: int, reason: str) -> str:
+    """Describe why the content a page declares cannot be read."""
+
+    if reason == "cycle":
+        return f"PDF page {number} declares a content stream that refers to itself"
+    if reason == "unresolved":
+        return f"PDF page {number} declares a content stream the reader cannot resolve"
+    return f"PDF page {number} declares a content stream the document does not hold"
+
+
+def _unreadable_content(page: Any) -> str | None:
+    """Return why the content a page declares cannot be read.
+
+    ``None`` means the page declares content the document holds.
+    """
 
     try:
         raw = _declared_contents(page)
     except Exception:
-        return True
+        return "missing"
     if raw is None:
         # The page declares no content at all, which is what a blank page
         # looks like.
-        return False
-    candidates = raw if isinstance(raw, list) else [raw]
-    return any(_is_unreadable_content(candidate) for candidate in candidates)
+        return None
+    return _content_reason(raw)
 
 
 def _declared_contents(page: Any) -> Any:
@@ -337,33 +396,131 @@ def _declared_contents(page: Any) -> Any:
         return None
 
 
-def _is_unreadable_content(candidate: Any) -> bool:
-    """Report whether one declared content stream cannot be read."""
+def _content_reason(candidate: Any) -> str | None:
+    """Return why one declared content cannot be read.
+
+    ``None`` means the content is readable. A page holds one content stream or
+    an array of them, and either may be reached through a reference, so the
+    reference is followed first. An array is a container of streams rather
+    than a stream itself: every stream it holds is read on its own, and the
+    array is only unreadable when one of its streams is. A null object
+    declares that the page holds no content, which is what the reader reports
+    for it as well, so it is not a loss.
+
+    The references that lead to the content are carried along, so a structure
+    that refers back to itself is recognized as a cycle instead of being
+    followed forever. Two elements of one array may name the same stream,
+    which is not a cycle: only a reference that is met again on the way to the
+    content closes the loop.
+
+    The content is walked with an explicit stack, so the depth of a document
+    costs no recursion. A chain of references may be as long as the document
+    holds objects, and only a loop ends it.
+    """
+
+    pending: list[tuple[Any, _ReferencePath]] = [(candidate, frozenset())]
+    while pending:
+        current, path = pending.pop()
+        resolved, path, failure = _follow_reference(current, path)
+        if failure is not None:
+            return failure
+        if isinstance(resolved, list):
+            pending.extend((element, path) for element in reversed(resolved))
+            continue
+        if isinstance(resolved, NullObject):
+            continue
+        if isinstance(resolved, StreamObject):
+            continue
+        return "not a stream"
+    return None
+
+
+def _follow_reference(candidate: Any, path: _ReferencePath) -> tuple[Any, _ReferencePath, str | None]:
+    """Follow a chain of references to the object the chain ends at.
+
+    The specification lets any object value be a direct or an indirect
+    reference and calls the two equivalent, so a reference may point at
+    another reference. The reader does not follow such a chain by itself, so
+    the chain is followed here, one reference at a time.
+
+    The chain ends when it reaches an object that is not a reference, and it
+    is only as long as the document holds objects: every reference on the way
+    is remembered, so a chain that comes back to one of them is a cycle.
+
+    Returns the object the chain ends at, the references the chain passed,
+    and why the chain failed: ``"absent"`` when the document does not hold the
+    object, ``"cycle"`` when the chain refers back to itself, and
+    ``"unresolved"`` when the reader cannot resolve it.
+    """
+
+    current = candidate
+    seen = set(path)
+    while True:
+        identity = _reference_identity(current)
+        if identity is not None:
+            if identity in seen:
+                return None, frozenset(seen), "cycle"
+            seen.add(identity)
+        resolved, failure = _resolved_object(current)
+        if failure is not None:
+            return None, frozenset(seen), failure
+        if resolved is current:
+            return current, frozenset(seen), None
+        current = resolved
+
+
+def _resolved_object(candidate: Any) -> tuple[Any, str | None]:
+    """Resolve one reference, or report why it cannot be resolved.
+
+    The reader does not follow a chain of references by itself: it fails while
+    it attaches the reference it resolved, although it parsed the object. The
+    object the reader already parsed is asked for again, and the reader is
+    asked once more in case it kept the parsed object elsewhere.
+    """
 
     getter = getattr(candidate, "get_object", None)
     if getter is None:
-        # The content is held by the page itself instead of by a reference.
-        return not _is_content_stream(candidate)
+        return candidate, None
     try:
         resolved = getter()
     except Exception:
-        return True
+        resolved = _parsed_object(candidate)
+        if resolved is _MISSING:
+            try:
+                resolved = getter()
+            except Exception:
+                return None, "unresolved"
     if resolved is None:
-        return True
-    return not _is_content_stream(resolved)
+        # The document does not hold the object the reference points at.
+        return None, "absent"
+    if resolved is candidate:
+        return candidate, None
+    return resolved, None
 
 
-def _is_content_stream(candidate: Any) -> bool:
-    """Report whether an object can serve as the content of a page.
+def _reference_identity(candidate: Any) -> tuple[int, int] | None:
+    """Return the identity of an indirect reference, if the candidate is one."""
 
-    A page holds a content stream or nothing at all. An object that is not a
-    stream cannot be read as the content of a page, and a null object declares
-    that the page has no content, which is legal.
+    number = getattr(candidate, "idnum", None)
+    generation = getattr(candidate, "generation", None)
+    if isinstance(number, int) and isinstance(generation, int):
+        return (generation, number)
+    return None
+
+
+def _parsed_object(reference: Any) -> Any:
+    """Return the object the reader already parsed for a reference.
+
+    The reader stores the object it parsed before it attaches the reference to
+    it, so the parsed object is still there after the reader failed to attach
+    it. ``_MISSING`` means the reader holds no object for the reference.
     """
 
-    if isinstance(candidate, NullObject):
-        return True
-    return isinstance(candidate, StreamObject)
+    identity = _reference_identity(reference)
+    cache = getattr(getattr(reference, "pdf", None), "resolved_objects", None)
+    if identity is None or not isinstance(cache, dict):
+        return _MISSING
+    return cache.get(identity, _MISSING)
 
 
 def _reject_incomplete_document(reader: Any, parsed: int) -> None:
